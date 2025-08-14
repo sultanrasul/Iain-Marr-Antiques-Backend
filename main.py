@@ -26,7 +26,7 @@ client = gspread.authorize(creds)
 
 # Start Flask
 app = Flask(__name__)
-CORS(app, resources={r"/get_stock": {"origins": "*"}})  # Add CORS support
+CORS(app, origins="*")  # Add CORS support
 
 # Open by name or URL
 sheet = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw").sheet1
@@ -36,6 +36,14 @@ def get_stock():
     
     # Get all rows
     data = sheet.get_all_records()
+
+    return jsonify(data)
+
+@app.route('/print_labels', methods=['POST'])
+def print_labels():
+    data = request.json
+
+    print(data)
 
     return jsonify(data)
 
