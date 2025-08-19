@@ -9,6 +9,9 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 
+# Printer
+import usb.core, usb.util
+
 # Path to your service account key JSON
 SERVICE_ACCOUNT_FILE = "iain-marr-antiques-04d650544d22.json"
 
@@ -31,6 +34,26 @@ CORS(app, origins="*")  # Add CORS support
 # Open by name or URL
 sheet = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw").sheet1
 
+
+# Find Star TSP800II
+dev = usb.core.find(idVendor=0x0519, idProduct=0x0001)
+if dev is None:
+    raise ValueError("Printer not found")
+
+# Detach kernel driver if necessary
+if dev.is_kernel_driver_active(0):
+    dev.detach_kernel_driver(0)
+
+# Set configuration
+dev.set_configuration()
+
+# Get endpoint
+cfg = dev.get_active_configuration()
+intf = cfg[(0,0)]
+printer = usb.util.find_descriptor(intf, custom_match=lambda e: 
+    usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
+
+
 @app.route('/get_stock', methods=['POST'])
 def get_stock():
     
@@ -42,6 +65,9 @@ def get_stock():
 @app.route('/print_labels', methods=['POST'])
 def print_labels():
     data = request.json
+
+    receipt_header()
+
 
     print(data)
 
@@ -117,7 +143,44 @@ def add_product():
 
     return jsonify({"success": True, "new_row": new_row})
 
+# Printer Functions
+def receipt_header():
+    # Printer initialization
+    printer.write(b'\x1b\x40')  # Initialize printer
+    printer.write(b'\x1b\x74\x01')  # Select UK character set (for £ symbol)
 
+    # --------------------------------------------------
+    # COMPLETE HEADER (As shown in logo.jpeg)
+    # --------------------------------------------------
+    printer.write(b'\x1b\x1d\x61\x01')     # Center alignment
+
+    # Company Name (Large)
+    printer.write(b'\x1b\x69\x01\x01')      # Double width & height
+    printer.write(b'IAIN MARR ANTIQUES\n')
+    printer.write(b'\x1b\x69\x00\x00')      # Normal text size
+
+    # Established Year
+    printer.write(b'ESTABLISHED 1975\n\n')
+
+    # Memberships
+    printer.write(b'MEMBER of L.A.P.A.D.A and THE SILVER SOCIETY.\n')
+
+    # Business Description
+    printer.write(b'DEALERS IN FINE SILVER, SCOTTISH REGALIA,JEWELLERY AND CERAMICS\n\n')
+
+    # Address
+    printer.write(b'2 Aird House, High Street, Beauly, Scotland, IV4 7BS\n')
+
+    # Contact Info
+    printer.write(b'  Tel:01463782372   Info@iain-marr-antiques.com  \n')
+
+    printer.write(b'\x1b\x1d\x61\x00')     # Left alignment (for rest of document)
+    printer.write(b'\n' * 2)                # Spacer before items
+
+
+
+    printer.write(b'\x1b\x64\x02')          # Feed 2 more lines
+    printer.write(b'\x1d\x56\x41\x00')      # Partial cut
 
 
 if __name__ == "__main__":

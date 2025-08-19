@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/Users/sultanrasul/Desktop/projects/Iain Marr Antiques/Backend/venv/bin/python3" "$0" "$@"
-' '''
+#!/home/sultanrasul/backend/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
