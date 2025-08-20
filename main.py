@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS  # Add this import
 import os
 
+import textwrap
+import subprocess
+import time
+
 import requests
 import json
 
@@ -66,8 +70,8 @@ def get_stock():
 def print_labels():
     data = request.json
 
-    receipt_header()
-
+    print_receipt(data["selectedProducts"])
+    
 
     print(data)
 
@@ -144,43 +148,128 @@ def add_product():
     return jsonify({"success": True, "new_row": new_row})
 
 # Printer Functions
-def receipt_header():
-    # Printer initialization
-    printer.write(b'\x1b\x40')  # Initialize printer
-    printer.write(b'\x1b\x74\x01')  # Select UK character set (for £ symbol)
+def print_receipt(selectedProducts):
+    # Printer width for 112mm
+    line_width = 68
+
 
     # --------------------------------------------------
-    # COMPLETE HEADER (As shown in logo.jpeg)
+    # FIRST HALF HEADER
+    # --------------------------------------------------
+
+    result = subprocess.run([
+        "lp",
+        "-d", "Star_TSP800_",
+        "-o", "scaling=100",
+        "-o", "fit-to-page",
+        "-o", "orientation-requested=3",
+        "/home/sultanrasul/backend/logo3.jpeg"
+    ], capture_output=True, text=True)
+
+    job_output = result.stdout.strip()
+    if not job_output:
+        raise RuntimeError("Failed to submit logo print job")
+
+    # Example lp output: "request id is Star_TSP800_-12 (1 file(s))"
+    job_id = job_output.split(" ")[3]
+
+    # Wait until CUPS reports job is done
+    while True:
+        stat = subprocess.run(
+            ["lpstat", "-W", "not-completed"],
+            capture_output=True,
+            text=True
+        ).stdout
+        if job_id not in stat:
+            break
+        time.sleep(0.5)
+
+    print("✅ Logo finished printing, continuing with receipt text...")
+
+    # Printer initialization
+    printer.write(b'\x1b\x40')        # Initialize printer
+    printer.write(b'\x1b\x74\x01')    # Select UK character set (for £ symbol)
+    printer.write(b'\n' * 2)
+
+
+
+    # --------------------------------------------------
+    # SECOND HALF HEADER
     # --------------------------------------------------
     printer.write(b'\x1b\x1d\x61\x01')     # Center alignment
-
-    # Company Name (Large)
-    printer.write(b'\x1b\x69\x01\x01')      # Double width & height
-    printer.write(b'IAIN MARR ANTIQUES\n')
-    printer.write(b'\x1b\x69\x00\x00')      # Normal text size
-
-    # Established Year
-    printer.write(b'ESTABLISHED 1975\n\n')
-
-    # Memberships
+    printer.write(b'\x1b\x69\x00\x00')
     printer.write(b'MEMBER of L.A.P.A.D.A and THE SILVER SOCIETY.\n')
-
-    # Business Description
-    printer.write(b'DEALERS IN FINE SILVER, SCOTTISH REGALIA,JEWELLERY AND CERAMICS\n\n')
-
-    # Address
+    printer.write(b'DEALERS IN FINE SILVER, SCOTTISH REGALIA, JEWELLERY AND CERAMICS\n\n')
     printer.write(b'2 Aird House, High Street, Beauly, Scotland, IV4 7BS\n')
+    printer.write(b'Tel: 01463 782372   Info@iain-marr-antiques.com\n\n')
+    printer.write(b'\x1b\x1d\x61\x00')
+    printer.write(b'\n' * 2)
 
-    # Contact Info
-    printer.write(b'  Tel:01463782372   Info@iain-marr-antiques.com  \n')
+    # Function for printing items with text wrapping
+    def format_item(id, name, value, width):
+        """Prints item with id + name, wraps long names across lines."""
+        left = f"{id} - {name}"
+        # Calculate available space for text (accounting for price)
+        available_width = width - len(value) - 6  # -3 for " £" and space
+        
+        # Wrap the label into lines
+        wrapped = textwrap.wrap(left, available_width)
+        
+        output = []
+        for i, line in enumerate(wrapped):
+            if i == 0:
+                # First line gets the price
+                # More precise calculation
+                spaces = width - len(line) - len(value) - 2  # -2 for "£" and space
+                if spaces < 1:
+                    spaces = 1
+                output.append(line.encode("cp1252") + b" " * spaces + b"\xA3" + value.encode("cp1252"))
+            else:
+                # Continuation lines, just left aligned
+                output.append(line.encode("cp1252"))
+        return output
 
-    printer.write(b'\x1b\x1d\x61\x00')     # Left alignment (for rest of document)
-    printer.write(b'\n' * 2)                # Spacer before items
+    # Function for aligned totals (no wrapping needed)
+    def format_total_line(label, value, width):
+        """Format line with left-aligned label and right-aligned £value"""
+        # More precise calculation
+        spaces = width - len(label) - len(value) - 2  # -2 for "£" and space
+        if spaces < 1:
+            spaces = 1
+        return label.encode('cp1252') + b' ' * spaces + b'\xA3' + value.encode('cp1252')
+
+    def print_line(label, value, bold=False):
+        if bold:
+            printer.write(b'\x1b\x45\x01')  # Bold ON
+        printer.write(format_total_line(label, value, line_width) + b"\n")
+        if bold:
+            printer.write(b'\x1b\x45\x00')  # Bold OFF
 
 
+    for product in selectedProducts:
+        for part in format_item(product["id"], product["name"], f"{product['price']:.2f}", line_width):
+            printer.write(part + b"\n")
+        printer.write(b'\n')
 
-    printer.write(b'\x1b\x64\x02')          # Feed 2 more lines
-    printer.write(b'\x1d\x56\x41\x00')      # Partial cut
+    # --------------------------------------------------
+    # Totals
+    # --------------------------------------------------
+    # Calculate actual totals based on items
+    total = sum(float(product["price"]) for product in selectedProducts)
+    subtotal = total
+
+    print_line("Subtotal:", f"{subtotal:.2f}")
+    print_line("TOTAL:", f"{total:.2f}", bold=True)
+    printer.write(b"\n")
+
+    # --------------------------------------------------
+    # Cut
+    # --------------------------------------------------
+    printer.write(b'\n' * 2)
+    printer.write(b'\x1b\x64\x02')  # Feed 2 lines
+    printer.write(b'\x1d\x56\x41\x00')  # Partial cut
+
+    usb.util.dispose_resources(dev)
 
 
 if __name__ == "__main__":
