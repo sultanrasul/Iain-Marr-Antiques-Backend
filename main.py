@@ -266,8 +266,10 @@ def print_receipt(selectedProducts):
     # Cut
     # --------------------------------------------------
     printer.write(b'\n' * 2)
+
+    # THIS IS THE VA WHAT IT IS PRINTING OUT
     printer.write(b'\x1b\x64\x02')  # Feed 2 lines
-    printer.write(b'\x1d\x56\x41\x00')  # Partial cut
+
 
     usb.util.dispose_resources(dev)
 
