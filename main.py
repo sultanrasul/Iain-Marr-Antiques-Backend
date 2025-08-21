@@ -163,7 +163,34 @@ def print_receipt(selectedProducts):
         "-o", "scaling=100",
         "-o", "fit-to-page",
         "-o", "orientation-requested=3",
-        "/home/sultanrasul/backend/logo3.jpeg"
+        "/home/sultanrasul/backend/Final/logo.jpeg"
+    ], capture_output=True, text=True)
+
+    job_output = result.stdout.strip()
+    if not job_output:
+        raise RuntimeError("Failed to submit logo print job")
+
+    # Example lp output: "request id is Star_TSP800_-12 (1 file(s))"
+    job_id = job_output.split(" ")[3]
+
+    # Wait until CUPS reports job is done
+    while True:
+        stat = subprocess.run(
+            ["lpstat", "-W", "not-completed"],
+            capture_output=True,
+            text=True
+        ).stdout
+        if job_id not in stat:
+            break
+        time.sleep(0.5)
+
+    result = subprocess.run([
+        "lp",
+        "-d", "Star_TSP800_",
+        "-o", "scaling=100",
+        "-o", "fit-to-page",
+        "-o", "orientation-requested=3",
+        "/home/sultanrasul/backend/Final/para.jpeg"
     ], capture_output=True, text=True)
 
     job_output = result.stdout.strip()
@@ -196,14 +223,16 @@ def print_receipt(selectedProducts):
     # --------------------------------------------------
     # SECOND HALF HEADER
     # --------------------------------------------------
-    printer.write(b'\x1b\x1d\x61\x01')     # Center alignment
-    printer.write(b'\x1b\x69\x00\x00')
-    printer.write(b'MEMBER of L.A.P.A.D.A and THE SILVER SOCIETY.\n')
-    printer.write(b'DEALERS IN FINE SILVER, SCOTTISH REGALIA, JEWELLERY AND CERAMICS\n\n')
-    printer.write(b'2 Aird House, High Street, Beauly, Scotland, IV4 7BS\n')
-    printer.write(b'Tel: 01463 782372   Info@iain-marr-antiques.com\n\n')
+    # printer.write(b'\x1b\x1d\x61\x01')     # Center alignment
+    # printer.write(b'\x1b\x69\x00\x00')
+    # printer.write(b'MEMBER of L.A.P.A.D.A and THE SILVER SOCIETY.\n')
+    # printer.write(b'DEALERS IN FINE SILVER, SCOTTISH REGALIA, JEWELLERY AND CERAMICS\n\n')
+    # printer.write(b'2 Aird House, High Street, Beauly, Scotland, IV4 7BS\n')
+    # printer.write(b'Tel: 01463 782372   Info@iain-marr-antiques.com\n\n')
+
+
     printer.write(b'\x1b\x1d\x61\x00')
-    printer.write(b'\n' * 2)
+    printer.write(b'\n')
 
     # Function for printing items with text wrapping
     def format_item(id, name, value, width):
