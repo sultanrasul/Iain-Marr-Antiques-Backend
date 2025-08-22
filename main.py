@@ -235,29 +235,40 @@ def print_receipt(selectedProducts):
     printer.write(b'\n')
 
     # Function for printing items with text wrapping
-    def format_item(id, name, value, width):
-        """Prints item with id + name, wraps long names across lines."""
-        left = f"{id} - {name}"
+    def format_item(id, name, value, width, longestID):
+        """Prints item with aligned ids, wraps long names across lines."""
+        # Pad ID so that all dashes line up
+        print(f"Longest ID: {longestID}")
+        padding = " " * (longestID - len(str(id)) )
+        print(f"Padding: {padding}")
+
+        prefix = f"{str(id)}{padding} - "
+
+        left = f"{prefix}{name}"
+
         # Calculate available space for text (accounting for price)
         available_width = width - len(value) - 6  # -3 for " £" and space
-        
-        # Wrap the label into lines
-        wrapped = textwrap.wrap(left, available_width)
-        
+
+        # Wrap the label into lines, indenting subsequent lines to align after prefix
+        wrapped = textwrap.wrap(
+            left,
+            available_width,
+            subsequent_indent=" " * len(prefix)
+        )
+
         output = []
         for i, line in enumerate(wrapped):
             if i == 0:
-                # First line gets the price
-                # More precise calculation
+                # First line gets the price, right aligned
                 spaces = width - len(line) - len(value) - 2  # -2 for "£" and space
                 if spaces < 1:
                     spaces = 1
                 output.append(line.encode("cp1252") + b" " * spaces + b"\xA3" + value.encode("cp1252"))
             else:
-                # Continuation lines, just left aligned
+                # Continuation lines already have correct indent
                 output.append(line.encode("cp1252"))
         return output
-
+    
     # Function for aligned totals (no wrapping needed)
     def format_total_line(label, value, width):
         """Format line with left-aligned label and right-aligned £value"""
@@ -275,8 +286,9 @@ def print_receipt(selectedProducts):
             printer.write(b'\x1b\x45\x00')  # Bold OFF
 
 
+    longestID = max(len(str(product["id"])) for product in selectedProducts)
     for product in selectedProducts:
-        for part in format_item(product["id"], product["name"], f"{product['price']:.2f}", line_width):
+        for part in format_item(product["id"], product["name"], f"{product['price']:.2f}", line_width, longestID):
             printer.write(part + b"\n")
         printer.write(b'\n')
 
