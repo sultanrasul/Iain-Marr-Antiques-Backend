@@ -5,6 +5,8 @@ import os
 import textwrap
 import subprocess
 import time
+from datetime import datetime
+
 
 import requests
 import json
@@ -216,7 +218,7 @@ def print_receipt(selectedProducts):
     # Printer initialization
     printer.write(b'\x1b\x40')        # Initialize printer
     printer.write(b'\x1b\x74\x01')    # Select UK character set (for £ symbol)
-    printer.write(b'\n' * 2)
+    printer.write(b'\n')
 
 
 
@@ -270,20 +272,28 @@ def print_receipt(selectedProducts):
         return output
     
     # Function for aligned totals (no wrapping needed)
-    def format_total_line(label, value, width):
-        """Format line with left-aligned label and right-aligned £value"""
-        # More precise calculation
-        spaces = width - len(label) - len(value) - 2  # -2 for "£" and space
+    def format_total_line(label, value, width, currency=True):
+        """Format line with left-aligned label and right-aligned value (optionally prefixed with £)."""
+        spaces = width - len(label) - len(value) - (2 if currency else 1)
         if spaces < 1:
             spaces = 1
-        return label.encode('cp1252') + b' ' * spaces + b'\xA3' + value.encode('cp1252')
 
-    def print_line(label, value, bold=False):
+        if currency:
+            return label.encode('cp1252') + b' ' * spaces + b'\xA3' + value.encode('cp1252')
+        else:
+            return label.encode('cp1252') + b' ' * spaces + value.encode('cp1252')
+
+
+    def print_line(label, value, bold=False, currency=True):
         if bold:
-            printer.write(b'\x1b\x45\x01')  # Bold ON
-        printer.write(format_total_line(label, value, line_width) + b"\n")
-        if bold:
-            printer.write(b'\x1b\x45\x00')  # Bold OFF
+            printer.write(b'\x1b\x45')  # Bold ON
+        printer.write(format_total_line(label, value, line_width, currency) + b"\n")
+        printer.write(b'\x1b\x46')  # Bold OFF
+
+    today = datetime.now().strftime("%-d.%-m.%y")  # e.g. "9.4.25"
+    print_line("Sold To: Sultan Rasul", f"Date: {today}", currency=False, bold=True)
+
+    printer.write(b"\n\n")
 
 
     longestID = max(len(str(product["id"])) for product in selectedProducts)
@@ -301,7 +311,11 @@ def print_receipt(selectedProducts):
 
     print_line("Subtotal:", f"{subtotal:.2f}")
     print_line("TOTAL:", f"{total:.2f}", bold=True)
-    printer.write(b"\n")
+
+    printer.write(b"\n\n")
+
+    printer.write(b"VAT Reg No. 2965 743 08\n")
+    printer.write(b"VAT has not been charged on the above items.")
 
     # --------------------------------------------------
     # Cut
