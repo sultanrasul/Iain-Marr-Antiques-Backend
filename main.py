@@ -37,47 +37,176 @@ client = gspread.authorize(creds)
 app = Flask(__name__)
 CORS(app, origins="*")  # Add CORS support
 
-# Open by name or URL
-sheet = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw").sheet1
+workbook = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw")
+items = workbook.sheet1
+sold_items = workbook.get_worksheet(1)  # index starts at 0
+
+# Connect Printer Code Below
+# # Find Star TSP800II
+# dev = usb.core.find(idVendor=0x0519, idProduct=0x0001)
+# if dev is None:
+#     raise ValueError("Printer not found")
+
+# # Detach kernel driver if necessary
+# if dev.is_kernel_driver_active(0):
+#     dev.detach_kernel_driver(0)
+
+# # Set configuration
+# dev.set_configuration()
+
+# # Get endpoint
+# cfg = dev.get_active_configuration()
+# intf = cfg[(0,0)]
+# printer = usb.util.find_descriptor(intf, custom_match=lambda e: 
+#     usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
+
+dev = None
+printer = None
 
 
-# Find Star TSP800II
-dev = usb.core.find(idVendor=0x0519, idProduct=0x0001)
-if dev is None:
-    raise ValueError("Printer not found")
+def try_connect_printer():
+    # Try to connect to the printer. Return True if connected.
+    global dev, printer
+    try:
+        dev = usb.core.find(idVendor=0x0519, idProduct=0x0001)
+        if dev is None:
+            printer = None
+            return False
 
-# Detach kernel driver if necessary
-if dev.is_kernel_driver_active(0):
-    dev.detach_kernel_driver(0)
+        if dev.is_kernel_driver_active(0):
+            dev.detach_kernel_driver(0)
 
-# Set configuration
-dev.set_configuration()
-
-# Get endpoint
-cfg = dev.get_active_configuration()
-intf = cfg[(0,0)]
-printer = usb.util.find_descriptor(intf, custom_match=lambda e: 
-    usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
-
-
-@app.route('/get_stock', methods=['POST'])
-def get_stock():
+        dev.set_configuration()
+        cfg = dev.get_active_configuration()
+        intf = cfg[(0, 0)]
+        printer = usb.util.find_descriptor(
+            intf,
+            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT
+        )
+        return printer is not None
+    except Exception as e:
+        dev = None
+        printer = None
+        return False
     
-    # Get all rows
-    data = sheet.get_all_records()
+try_connect_printer()
 
-    return jsonify(data)
+@app.route("/reconnect_printer", methods=["GET"])
+def reconnect_printer():
+    connected = try_connect_printer()
+    return jsonify({"connected": connected})
+
+# Restart Raspberry Pi
+@app.route("/restart", methods=["POST"])
+def restart_pi():
+    try:
+        # Schedule a restart after 1 second
+        subprocess.Popen(["sudo", "shutdown", "-r", "now"])
+        return jsonify({"success": True, "message": "Raspberry Pi is restarting..."}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# Shutdown Raspberry Pi
+@app.route("/shutdown", methods=["POST"])
+def shutdown_pi():
+    try:
+        # Schedule a shutdown after 1 second
+        subprocess.Popen(["sudo", "shutdown", "now"])
+        return jsonify({"success": True, "message": "Raspberry Pi is shutting down..."}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/get_stock", methods=["POST"])
+def get_stock():
+    # existing logic
+    data = items.get_all_records()
+    printer_connected = printer is not None
+    return jsonify({
+        "data": data,
+        "printer_connected": try_connect_printer()
+    })
 
 @app.route('/print_labels', methods=['POST'])
 def print_labels():
     data = request.json
+    selected_products = data.get("selectedProducts", [])
+    customer = data.get("customerName", "")
+    logSold = data.get("logSold", False)
 
-    print_receipt(data["selectedProducts"])
+
+    if try_connect_printer() == False:
+        return jsonify({"success": False, "error": "Printer not connected"}), 400
     
+    print_receipt(selected_products, customer)
 
     print(data)
 
-    return jsonify(data)
+    if logSold:
+
+        all_records = items.get_all_records()
+        headers = items.row_values(1)
+
+        for product in selected_products:
+            sku = str(product.get("sku")).strip()
+            row_index = None
+
+            # Find row in Items
+            for i, record in enumerate(all_records, start=2):  # start=2 because header is row 1
+                if str(record.get("SKU NO.")).strip() == sku:
+                    row_index = i
+                    break
+
+            if not row_index:
+                continue  # skip if SKU not found
+
+            # Normal row for Items (no customer field here)
+            updated_row = [
+                product.get("sku", ""),
+                product.get("imSKU", ""),
+                product.get("name", ""),
+                product.get("price", ""),
+                product.get("dateBought", ""),
+                product.get("seller", ""),
+                product.get("purchasePrice", ""),
+                product.get("commission", ""),
+                datetime.now().strftime("%-d.%-m.%y %H:%M"),  # dateSold
+                product.get("invoiceNo", ""),
+                True if product.get("onWebsite") else "",
+                product.get("location", ""),
+                True  # sold
+            ]
+
+            # Update in Items sheet
+            items.update(
+                [updated_row],
+                range_name=f"A{row_index}:{chr(64 + len(headers))}{row_index}"
+            )
+
+            sold_row = [
+                product.get("sku", ""),
+                product.get("imSKU", ""),
+                customer,  # insert customer here
+                product.get("name", ""),
+                product.get("price", ""),
+                product.get("dateBought", ""),
+                product.get("seller", ""),
+                product.get("purchasePrice", ""),
+                product.get("commission", ""),
+                datetime.now().strftime("%-d.%-m.%y %H:%M"),
+                product.get("invoiceNo", ""),
+                True if product.get("onWebsite") else "",
+                product.get("location", ""),
+                True
+            ]
+            sold_items.append_row(sold_row, value_input_option="USER_ENTERED")
+
+    return jsonify({
+        "success": True,
+        "sold_count": len(selected_products) if logSold else 0,
+        "printed_count": len(selected_products)
+    })
+
 
 @app.route('/modify_product', methods=['POST'])
 def modify_product():
@@ -88,7 +217,7 @@ def modify_product():
         return jsonify({"error": "SKU is required"}), 400
 
     # Get all rows
-    all_records = sheet.get_all_records()
+    all_records = items.get_all_records()
     
     # Find the row index (gspread is 1-indexed, plus header row)
     row_index = None
@@ -101,7 +230,7 @@ def modify_product():
         return jsonify({"error": "SKU not found"}), 404
 
     # Prepare updated row values in the same order as the spreadsheet headers
-    headers = sheet.row_values(1)
+    headers = items.row_values(1)
     updated_row = [
         data.get("sku", ""),
         data.get("imSKU", ""),
@@ -119,7 +248,7 @@ def modify_product():
     ]
 
     # Update the row
-    sheet.update(f"A{row_index}:{chr(64 + len(headers))}{row_index}", [updated_row])
+    items.update(f"A{row_index}:{chr(64 + len(headers))}{row_index}", [updated_row])
 
     return jsonify({"success": True, "updated_row": updated_row})
 
@@ -145,18 +274,18 @@ def add_product():
     ]
 
     # Append to the sheet
-    sheet.append_row(new_row, value_input_option="USER_ENTERED")
+    items.append_row(new_row, value_input_option="USER_ENTERED")
 
     return jsonify({"success": True, "new_row": new_row})
 
 # Printer Functions
-def print_receipt(selectedProducts):
+def print_receipt(selectedProducts, customerName):
     # Printer width for 112mm
     line_width = 68
 
 
     # --------------------------------------------------
-    # FIRST HALF HEADER
+    # PRINT HEADER
     # --------------------------------------------------
 
     result = subprocess.run([
@@ -165,34 +294,7 @@ def print_receipt(selectedProducts):
         "-o", "scaling=100",
         "-o", "fit-to-page",
         "-o", "orientation-requested=3",
-        "/home/sultanrasul/backend/Final/logo.jpeg"
-    ], capture_output=True, text=True)
-
-    job_output = result.stdout.strip()
-    if not job_output:
-        raise RuntimeError("Failed to submit logo print job")
-
-    # Example lp output: "request id is Star_TSP800_-12 (1 file(s))"
-    job_id = job_output.split(" ")[3]
-
-    # Wait until CUPS reports job is done
-    while True:
-        stat = subprocess.run(
-            ["lpstat", "-W", "not-completed"],
-            capture_output=True,
-            text=True
-        ).stdout
-        if job_id not in stat:
-            break
-        time.sleep(0.5)
-
-    result = subprocess.run([
-        "lp",
-        "-d", "Star_TSP800_",
-        "-o", "scaling=100",
-        "-o", "fit-to-page",
-        "-o", "orientation-requested=3",
-        "/home/sultanrasul/backend/Final/para.jpeg"
+        "/home/sultanrasul/backend/Final/header.jpeg"
     ], capture_output=True, text=True)
 
     job_output = result.stdout.strip()
@@ -291,7 +393,10 @@ def print_receipt(selectedProducts):
         printer.write(b'\x1b\x46')  # Bold OFF
 
     today = datetime.now().strftime("%-d.%-m.%y")  # e.g. "9.4.25"
-    print_line("Sold To: Sultan Rasul", f"Date: {today}", currency=False, bold=True)
+    if len(customerName) > 0:
+        print_line(f"Sold To: {customerName}", f"Date: {today}", currency=False, bold=True)
+    else:
+        print_line("", f"Date: {today}", currency=False, bold=True)
 
     printer.write(b"\n\n")
 
@@ -322,7 +427,7 @@ def print_receipt(selectedProducts):
     # --------------------------------------------------
     printer.write(b'\n' * 2)
 
-    # THIS IS THE VA WHAT IT IS PRINTING OUT
+
     printer.write(b'\x1b\x64\x02')  # Feed 2 lines
 
 
