@@ -37,28 +37,11 @@ client = gspread.authorize(creds)
 app = Flask(__name__)
 CORS(app, origins="*")  # Add CORS support
 
-workbook = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw")
+
+# workbook = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw") Actual Sheet
+workbook = client.open_by_key("1wUvnZ5YLN-V5ddwiJ1j_eQSQ3_7M39L4mcjCjl_R4PM") # Test Sheet
 items = workbook.sheet1
 sold_items = workbook.get_worksheet(1)  # index starts at 0
-
-# Connect Printer Code Below
-# # Find Star TSP800II
-# dev = usb.core.find(idVendor=0x0519, idProduct=0x0001)
-# if dev is None:
-#     raise ValueError("Printer not found")
-
-# # Detach kernel driver if necessary
-# if dev.is_kernel_driver_active(0):
-#     dev.detach_kernel_driver(0)
-
-# # Set configuration
-# dev.set_configuration()
-
-# # Get endpoint
-# cfg = dev.get_active_configuration()
-# intf = cfg[(0,0)]
-# printer = usb.util.find_descriptor(intf, custom_match=lambda e: 
-#     usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT)
 
 dev = None
 printer = None
@@ -132,13 +115,17 @@ def print_labels():
     data = request.json
     selected_products = data.get("selectedProducts", [])
     customer = data.get("customerName", "")
+    paymentType = data.get("paymentType", "")
+    duplicateCount = data.get("duplicateCount", 1)
     logSold = data.get("logSold", False)
 
 
     if try_connect_printer() == False:
         return jsonify({"success": False, "error": "Printer not connected"}), 400
     
-    print_receipt(selected_products, customer)
+    for i in range(duplicateCount):
+        # print(f"Print {i+1}")
+        print_receipt(selected_products, customer)
 
     print(data)
 
@@ -170,7 +157,8 @@ def print_labels():
                 product.get("seller", ""),
                 product.get("purchasePrice", ""),
                 product.get("commission", ""),
-                datetime.now().strftime("%-d.%-m.%y %H:%M"),  # dateSold
+                # datetime.now().strftime("%-d.%-m.%y %H:%M"),  # dateSold
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 product.get("invoiceNo", ""),
                 True if product.get("onWebsite") else "",
                 product.get("location", ""),
@@ -193,7 +181,9 @@ def print_labels():
                 product.get("seller", ""),
                 product.get("purchasePrice", ""),
                 product.get("commission", ""),
-                datetime.now().strftime("%-d.%-m.%y %H:%M"),
+                # datetime.now().strftime("%-d.%-m.%y %H:%M"),
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                paymentType,
                 product.get("invoiceNo", ""),
                 True if product.get("onWebsite") else "",
                 product.get("location", ""),
