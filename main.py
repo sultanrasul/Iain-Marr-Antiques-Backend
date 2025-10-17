@@ -284,7 +284,7 @@ def print_receipt(selectedProducts, customerName):
         "-o", "scaling=100",
         "-o", "fit-to-page",
         "-o", "orientation-requested=3",
-        "/home/sultanrasul/backend/Final/header.jpeg"
+        "/home/sultanrasul/backend/header.jpeg"
     ], capture_output=True, text=True)
 
     job_output = result.stdout.strip()
