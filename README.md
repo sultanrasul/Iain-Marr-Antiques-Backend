@@ -1,9 +1,27 @@
 # 🏺 Iain Marr Antiques Inventory & Receipt System (Backend)
 
-Developed end-to-end by **Sultan Rasul**, this backend powers a **full-stack inventory and receipt system** for an antique store.  
-The system integrates **Flask**, **Google Sheets API**, and a **USB receipt printer** to replace handwritten receipts with a digital, automated workflow.
+> Developed end-to-end by **Sultan Rasul** as a freelance project for a local antique store.
 
 🔗 **Frontend Repository:** [Iain Marr Antiques (Svelte Frontend)](https://github.com/sultanrasul/Iain-Marr-Antiques-Frontend)
+
+---
+
+## 🧩 Project Summary
+
+### **Problem**
+The store’s entire sales process was manual — handwritten receipts, stock updates in Apple Numbers, and no reliable digital record of transactions.  
+There was no way to automatically log sales data or connect receipt printing with inventory management.
+
+### **Solution**
+Developed a **Flask-based backend** deployed on a **Raspberry Pi**, responsible for handling all server-side logic and hardware communication.  
+Key functionality included:
+- Secure **Google Sheets API** integration for retrieving and updating live stock data  
+- **ESC/POS thermal printer control** via Linux CUPS to generate branded receipts directly from the POS  
+- **Local REST API endpoints** for printing, adding, and modifying inventory, and system management (shutdown/restart)  
+
+### **Impact**
+Automated the store’s entire sales pipeline, transforming a slow, handwritten process into a seamless digital system.  
+Reduced transaction time by over 50%, eliminated duplicate record-keeping, and provided reliable, structured data for business tracking.
 
 ---
 
