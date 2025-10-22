@@ -6,6 +6,7 @@ import textwrap
 import subprocess
 import time
 from datetime import datetime
+from send_email import send_email
 
 
 import requests
@@ -18,14 +19,20 @@ from google.oauth2.service_account import Credentials
 # Printer
 import usb.core, usb.util
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Path to your service account key JSON
-SERVICE_ACCOUNT_FILE = "iain-marr-antiques-04d650544d22.json"
+# SERVICE_ACCOUNT_FILE = "iain-marr-antiques-04d650544d22.json"
+
+# Load JSON from environment variable
+SERVICE_ACCOUNT_FILE = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
 
 # Define the scope for spreadsheet
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Authenticate Service Account
-creds = Credentials.from_service_account_file(
+creds = Credentials.from_service_account_info(
     SERVICE_ACCOUNT_FILE,
     scopes=SCOPES
 )
@@ -39,7 +46,7 @@ CORS(app, origins="*")  # Add CORS support
 
 
 # workbook = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw") Actual Sheet
-workbook = client.open_by_key("1wUvnZ5YLN-V5ddwiJ1j_eQSQ3_7M39L4mcjCjl_R4PM") # Test Sheet
+workbook = client.open_by_key("1ZzFR06jqHqJk3EwVYPCJn8VUeu7Zsty8N_uLvlH1pW8") # Test Sheet
 items = workbook.sheet1
 sold_items = workbook.get_worksheet(1)  # index starts at 0
 
@@ -115,19 +122,22 @@ def print_labels():
     data = request.json
     selected_products = data.get("selectedProducts", [])
     customer = data.get("customerName", "")
-    paymentType = data.get("paymentType", "")
+    emailReceipt = data.get("emailReceipt", False)
+    emailAddress = data.get("emailAddress", "")
+
+    # paymentType = data.get("paymentType", "")
     duplicateCount = data.get("duplicateCount", 1)
     logSold = data.get("logSold", False)
 
 
-    if try_connect_printer() == False:
+    if try_connect_printer() == False and duplicateCount !=0:
         return jsonify({"success": False, "error": "Printer not connected"}), 400
     
     for i in range(duplicateCount):
         # print(f"Print {i+1}")
         print_receipt(selected_products, customer)
 
-    print(data)
+    send_email(selected_products=selected_products, customer=customer, emailAddress=emailAddress)
 
     if logSold:
 
@@ -183,7 +193,7 @@ def print_labels():
                 product.get("commission", ""),
                 # datetime.now().strftime("%-d.%-m.%y %H:%M"),
                 datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                paymentType,
+                # paymentType,
                 product.get("invoiceNo", ""),
                 True if product.get("onWebsite") else "",
                 product.get("location", ""),

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchase Receipt - Iain Marr Antiques</title>
+  <style>
+    /* Custom font */
+    @font-face {
+      font-family: 'AcademyEngraved';
+      src: url('https://iain-marr-antiques-frontend.pages.dev/fonts/AcademyEngravedLetPlain.ttf') format('truetype');
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      background-color: #f8fafc;
+      color: #333;
+    }
+
+    .container {
+      max-width: 550px;
+      margin: 20px auto;
+      padding: 30px 25px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      box-shadow: 0 4px 12px rgba(1, 25, 147, 0.08);
+    }
+
+    .header {
+      text-align: center;
+      color: #011993;
+      margin-top: 80px;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+    }
+
+    .header h1 {
+      font-family: 'AcademyEngraved', 'Didot', 'Georgia', serif;
+      font-weight: 300;
+      letter-spacing: 2px;
+      font-size: 48px;
+      margin: 0;
+      line-height: 1;
+    }
+
+    .header p {
+      font-family: 'AcademyEngraved', 'Didot', 'Georgia', serif;
+      font-weight: 300;
+      letter-spacing: 1.5px;
+      font-size: 18px;
+      text-transform: uppercase;
+      margin: 5px 0 0 0;
+      line-height: 1.2;
+      color: #011993;
+    }
+
+    .business-details {
+      font-family: 'AcademyEngraved', 'Didot', 'Georgia', serif;
+      font-weight: 300;
+      letter-spacing: 0.4px;
+      font-size: 14px;
+      text-transform: uppercase;
+      color: #011993;
+      line-height: 1.4;
+      margin-top: 15px;
+    }
+
+    .contact-line {
+      display: flex;
+      justify-content: center; /* centers the whole line */
+      gap: 70px; /* space between tel and email */
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    .personal-message {
+      padding: 10px;
+      line-height: 1.2;
+    }
+
+    .section {
+      margin-bottom: 25px;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #011993;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 5px;
+      font-weight: normal;
+      letter-spacing: 0.5px;
+    }
+    
+    .line {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #011993;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 5px;
+    }
+
+    .items-table, .totals-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .items-table td, .totals-table td {
+      padding: 8px 6px;
+      font-size: 15px;
+    }
+
+    .items-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .items-table td {
+    padding: 6px 4px;
+    font-size: 16px;
+    vertical-align: top; /* ensures the price aligns to the top */
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 30px;
+      padding-top: 20px;
+
+    }
+    	
+    .customer-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .customer-info p {
+      margin: 0;
+    }
+    
+    .ornament {
+      text-align: center;
+      color: #011993;
+      font-size: 24px;
+      margin: 10px 0;
+      opacity: 0.7;
+    }
+
+    @media only screen and (max-width: 600px) {
+      .container {
+        width: 100% !important;
+        padding: 15px;
+      }
+
+      .header h1 {
+        font-size: 36px;
+      }
+
+      .items-table td, .totals-table td {
+        font-size: 14px;
+      }
+      
+      .customer-info {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .customer-info p {
+        margin-bottom: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <center>
+     <!-- HEADER -->
+     <div class="header">
+        <h1>Iain Marr Antiques</h1>
+        <p>established 1975</p>
+        <div class="business-details">
+          <div style="font-size: 16px;">
+            MEMBER OF L.A.P.A.D.A AND THE SILVER SOCIETY.<br>
+            DEALERS IN FINE SILVER, SCOTTISH REGALIA,<br>
+            JEWELLERY AND CERAMICS<br>
+          <br>  
+          </div>
+          
+          2 Aird House, High Street, Beauly, Scotland, IV4 7BS.
+          <div class="contact-line">
+            <span>Tel: 01463 782372.</span>
+            <span>Info@iain-marr-antiques.com</span>
+          </div>
+          www.iain-marr-antiques.com
+        </div>
+      </div>
+    
+    
+    <div class="container" style="margin: 10px auto;padding: 0px 25px;">
+      <div class="personal-message" style="text-align: left;">
+        <p>Dear <span style="font-size:18px; color: #011993; font-family: 'AcademyEngraved', 'Didot', 'Georgia', serif; font-weight: 900;">Sultan Rasul</span>,</p>
+Thank you for choosing <span style="font-size:18px; color: #011993; font-family: 'AcademyEngraved', 'Didot', 'Georgia', serif; font-weight: 900;">Iain Marr Antiques</span> for your recent purchase. We're delighted you've found a piece that speaks to you, and we hope it brings you joy for years to come.
+        <p>Please see below for details of your purchase.</p>
+
+        <p>Kind regards,<br>
+            <span style="font-size:18px; color: #011993; font-family: 'AcademyEngraved', 'Didot', 'Georgia', serif; font-weight: 900;">Iain Marr Antiques</span>
+        </p>
+      </div>
+    </div>
+   
+
+    <div class="container">
+      <!-- CUSTOMER INFO -->
+      <div class="section">
+        <div class="customer-info">
+          <p><strong>Sold To:</strong> Sultan Rasul</p>
+          <p><strong>Date:</strong> 22.10.2025</p>
+        </div>
+        <div class="line"></div>
+      </div>
+
+      <!-- ITEMS -->
+      <div class="section">
+        <table class="items-table">
+          <tr>
+            <td>1 - Antique Silver Vase (c. 1890) </td>
+            <td style="text-align:right;">£149.99</td>
+          </tr>
+          <tr>
+            <td>2 - Victorian Jewellery Box</td>
+            <td style="text-align:right;">£249.50</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- TOTALS -->
+      <div class="section" style="margin-bottom: 0px;">
+        <table class="totals-table">
+          <tr>
+            <td>Subtotal:</td>
+            <td style="text-align:right;">£399.49</td>
+          </tr>
+          <tr>
+            <td>Total:</td>
+            <td style="text-align:right;">£399.49</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    
+    <!-- FOOTER -->
+    <div class="footer">
+      <p>VAT Reg No. 2965 743 08 | VAT has not been charged on the above items</p>
+      <p>&copy; 2025 Iain Marr Antiques | All rights reserved</p>
+    </div>
+    
+  </center>
+</body>
+</html>
