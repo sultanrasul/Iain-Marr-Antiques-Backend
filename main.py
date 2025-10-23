@@ -167,8 +167,8 @@ def print_labels():
                 product.get("seller", ""),
                 product.get("purchasePrice", ""),
                 product.get("commission", ""),
-                # datetime.now().strftime("%-d.%-m.%y %H:%M"),  # dateSold
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                datetime.now().strftime("%-d.%-m.%y %H:%M"),  
+                # datetime.now().strftime("%Y-%m-%d %H:%M:%S"), # use this when the column is changed to datetime in sheets
                 product.get("invoiceNo", ""),
                 True if product.get("onWebsite") else "",
                 product.get("location", ""),
@@ -191,8 +191,8 @@ def print_labels():
                 product.get("seller", ""),
                 product.get("purchasePrice", ""),
                 product.get("commission", ""),
-                # datetime.now().strftime("%-d.%-m.%y %H:%M"),
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                datetime.now().strftime("%-d.%-m.%y %H:%M"),  
+                # datetime.now().strftime("%Y-%m-%d %H:%M:%S"), # use this when the column is changed to datetime in sheets
                 # paymentType,
                 product.get("invoiceNo", ""),
                 True if product.get("onWebsite") else "",
