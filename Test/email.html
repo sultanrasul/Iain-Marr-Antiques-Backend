@@ -3,15 +3,78 @@
   <head>
     <meta charset="UTF-8">
     <title>Iain Marr Antiques - Purchase Receipt</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      
+      /* Fix paragraph spacing in greeting */
+      td.content p {
+        margin: 0 0 14px 0 !important;  /* Add breathing room between lines */
+        line-height: 1.8 !important;    /* Looser line spacing for elegance */
+      }
+      
+      /* Align item code and title neatly */
+      .item-code {
+        vertical-align: top !important;   /* keeps it aligned with text top */
+        padding-top: 10px !important;     /* visually centers with description */
+        font-weight: bold;
+      }
+      
+      /* Slightly tighten desc vertical spacing */
+      .item-desc {
+        line-height: 1.65 !important;
+        padding-top: 7px !important;
+      }
+      
+      /* Small-screen (under 370 px) stacking fix */
+      @media only screen and (max-width: 400px) {
+        .items-table,
+        .items-table tr,
+        .items-table td {
+          display: block !important;
+          width: 100% !important;
+          box-sizing: border-box;
+        }
+        
+        .item-code {
+          display: inline-block !important;
+          width: auto !important;
+          margin-bottom: 4px;
+          padding-left: 4px !important;  /* NEW: keeps inline padding */
+        }
+        
+        .item-desc {
+          padding-left: 4px !important;  /* NEW: matches IMA indent */
+          font-size: 15px !important;
+          line-height: 1.6 !important;
+        }
+        
+        .item-price {
+          text-align: right !important;
+          padding-top: 6px !important;
+          border-top: 1px dashed #e5e7eb !important;
+          margin-top: 6px !important;
+        }
+        table.container {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+      
+        td.content {
+          padding: 18px 16px !important;  /* slightly reduced padding for smaller screens */
+        }
+      }
+      
+      </style>
   </head>
-  <body style="margin:0; padding:0; background-color:#f8fafc; font-family:Georgia, 'Times New Roman', serif; color:#333333;">
+  
+  <body style="margin:0; padding:0; background-color:#EDF5FF; font-family:Georgia, 'Times New Roman', serif; color:#333333;">
     <center>
 
       <!-- HEADER -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:40px;">
         <tr>
-          <td align="center" style="padding-bottom:35px;padding-top:35px;">
-            <img src="https://iain-marr-antiques-frontend.pages.dev/email_logo.png" alt="Iain Marr Antiques" width="550" style="max-width:100%; height:auto; display:block;">
+          <td align="center" style="padding-bottom:35px; padding-top:35px;">
+            <img class="logo" src="https://iain-marr-antiques-frontend.pages.dev/email_logo.png" alt="Iain Marr Antiques" width="550" style="max-width:100%; height:auto; display:block;">
           </td>
         </tr>
         <tr>
@@ -31,9 +94,9 @@
       </table>
 
       <!-- MESSAGE -->
-      <table width="90%" cellpadding="0" cellspacing="0" border="0" style="max-width:650px; margin-top:40px; background-color:#ffffff; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 12px rgba(1,25,147,0.08);">
+      <table class="container" width="90%" cellpadding="0" cellspacing="0" border="0" style="max-width:650px; margin-top:40px; background-color:#ffffff; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 12px rgba(1,25,147,0.08);">
         <tr>
-          <td style="padding:20px 25px; text-align:left; font-size:15px; line-height:1.5;">
+          <td class="content" style="padding:20px 25px; text-align:left; font-size:15px; line-height:1.6;">
             <p>Dear <span style="color:#011993; font-weight:bold;">Sultan Rasul</span>,</p>
             <p>
               Thank you for choosing <span style="color:#011993; font-weight:bold;">Iain Marr Antiques</span> for your recent purchase. 
@@ -47,84 +110,84 @@
         </tr>
       </table>
 
-    <!-- ORDER DETAILS -->
-    <table width="90%" cellpadding="0" cellspacing="0" border="0" style="max-width:650px; margin-top:25px; background-color:#ffffff; border:1px solid #d1d5db; border-radius:8px;">
-    <tr>
-        <td style="padding:20px 25px; font-size:15px;">
+      <!-- ORDER DETAILS -->
+      <table class="container" width="90%" cellpadding="0" cellspacing="0" border="0" style="max-width:650px; margin-top:25px; background-color:#ffffff; border:1px solid #d1d5db; border-radius:8px;">
+        <tr>
+          <td class="content" style="padding:20px 25px; font-size:15px;">
 
-        <!-- SOLD TO + DATE on same line -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;">
-            <tr>
-            <td style="font-weight:bold; text-align:left;">Sold To: <span style="font-weight:normal;">Sultan Rasul</span></td>
-            <td style="text-align:right;"><strong>Date:</strong> 23.10.2025</td>
-            </tr>
-        </table>
+            <!-- SOLD TO + DATE -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-weight:bold; text-align:left;">Sold To: <span style="font-weight:normal;">Sultan Rasul</span></td>
+                <td style="text-align:right;"><strong>Date:</strong> 23.10.2025</td>
+              </tr>
+            </table>
 
-        <hr style="border:none; border-top:1px solid #e5e7eb; margin:10px 0;">
+            <hr style="border:none; border-top:1px solid #e5e7eb; margin:10px 0;">
 
-        <!-- ITEMS -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;">
-            <!-- Item 1 -->
-            <tr>
-            <td valign="top" style="padding:8px; width:0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.4; white-space:nowrap;">
-                IMA1 -
-            </td>
-            <td valign="top" style="padding:8px 8px 8px 0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.5;">
-                Georgian silver waiter London 1778 10oz Troy
-            </td>
-            <td valign="top" style="padding:8px; width:80px; font-size:15px; text-align:right; vertical-align:top; white-space:nowrap;">
-                £450.00
-            </td>
-            </tr>
+            <!-- ITEMS TABLE -->
+            <table class="items-table" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:'Palatino Linotype','Book Antiqua','Times New Roman',serif;">
+              <!-- Item 1 -->
+              <tr>
+                <td class="item-code" valign="top" style="padding:8px; width:50px; font-size:15px; vertical-align:top; white-space:nowrap;">
+                  IMA1 -
+                </td>
+                <td class="item-desc" valign="top" style="padding:8px 8px 8px 0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.6;">
+                  Georgian silver waiter London 1778 10oz Troy
+                </td>
+                <td class="item-price" valign="top" style="padding:8px; width:80px; font-size:15px; text-align:right; vertical-align:top; white-space:nowrap;">
+                  £450.00
+                </td>
+              </tr>
 
-            <!-- Item 2 -->
-            <tr style="background-color:#f8fafc;">
-            <td valign="top" style="padding:8px; width:0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.4; white-space:nowrap;">
-                IMA2 -
-            </td>
-            <td valign="top" style="padding:8px 8px 8px 0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.5;">
-                2 items Silver coffee pot (27.5 ozs troy) and teapot (24oz troy). Maker Thomas Bradbury & Sons (Joseph & Edward Bradbury) London 1875.
-            </td>
-            <td valign="top" style="padding:8px; width:80px; font-size:15px; text-align:right; vertical-align:top; white-space:nowrap;">
-                £1,350.00
-            </td>
-            </tr>
+              <!-- Item 2 -->
+              <tr style="background-color:#f8fafc;">
+                <td class="item-code" valign="top" style="padding:8px; width:50px; font-size:15px; vertical-align:top; white-space:nowrap;">
+                  IMA2 -
+                </td>
+                <td class="item-desc" valign="top" style="padding:8px 8px 8px 0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.6;">
+                  2 items Silver coffee pot (27.5 ozs troy) and teapot (24oz troy). Maker Thomas Bradbury & Sons (Joseph & Edward Bradbury) London 1875.
+                </td>
+                <td class="item-price" valign="top" style="padding:8px; width:80px; font-size:15px; text-align:right; vertical-align:top; white-space:nowrap;">
+                  £1,350.00
+                </td>
+              </tr>
 
-            <!-- Item 3 -->
-            <tr>
-            <td valign="top" style="padding:8px; width:0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.4; white-space:nowrap;">
-                IMA3 -
-            </td>
-            <td valign="top" style="padding:8px 8px 8px 0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.5;">
-                Scottish silver teapot Edinburgh 1876. Maker Mackays Chisholm 18oz Troy
-            </td>
-            <td valign="top" style="padding:8px; width:80px; font-size:15px; text-align:right; vertical-align:top; white-space:nowrap;">
-                £945.00
-            </td>
-            </tr>
-        </table>
+              <!-- Item 3 -->
+              <tr>
+                <td class="item-code" valign="top" style="padding:8px; width:50px; font-size:15px; vertical-align:top; white-space:nowrap;">
+                  IMA3 -
+                </td>
+                <td class="item-desc" valign="top" style="padding:8px 8px 8px 0px; font-size:15px; vertical-align:top; word-break:break-word; line-height:1.6;">
+                  Scottish silver teapot Edinburgh 1876. Maker Mackays Chisholm 18oz Troy
+                </td>
+                <td class="item-price" valign="top" style="padding:8px; width:80px; font-size:15px; text-align:right; vertical-align:top; white-space:nowrap;">
+                  £945.00
+                </td>
+              </tr>
+            </table>
 
-        <hr style="border:none; border-top:1px solid #e5e7eb; margin:10px 0;">
 
-        <!-- Totals -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;">
-            <tr>
-            <td style="padding:6px 4px; font-size:15px;">Subtotal:</td>
-            <td style="padding:6px 4px; font-size:15px; text-align:right;">£2,745.00</td>
-            </tr>
-            <tr>
-            <td style="padding:6px 4px; font-size:15px;">Total:</td>
-            <td style="padding:6px 4px; font-size:15px; text-align:right;">£2,745.00</td>
-            </tr>
-        </table>
+            <hr style="border:none; border-top:1px solid #e5e7eb; margin:10px 0;">
 
-        </td>
-    </tr>
-    </table>
+            <!-- Totals -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;">
+              <tr>
+                <td style="padding:6px 4px; font-size:16px;">Subtotal:</td>
+                <td style="padding:6px 4px; font-size:16px; text-align:right;">£2,745.00</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 4px; font-size:16px;">Total:</td>
+                <td style="padding:6px 4px; font-size:16px; text-align:right;">£2,745.00</td>
+              </tr>
+            </table>
 
+          </td>
+        </tr>
+      </table>
 
       <!-- FOOTER -->
-      <table width="90%" cellpadding="0" cellspacing="0" border="0" style="max-width:650px; margin-top:25px;">
+      <table class="container" width="90%" cellpadding="0" cellspacing="0" border="0" style="max-width:650px; margin-top:25px;">
         <tr>
           <td align="center" style="font-size:12px; color:#64748b; line-height:1.4; padding-bottom:40px;">
             <p style="margin:5px 0;">VAT Reg No. 2965 743 08 | VAT has not been charged on the above items</p>
