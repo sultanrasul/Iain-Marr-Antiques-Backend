@@ -27,7 +27,7 @@ load_dotenv()
 
 # Load JSON from environment variable
 SERVICE_ACCOUNT_FILE = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
-
+GOOGLE_SHEET_ID = os.environ["GOOGLE_SHEETS_ID"]
 # Define the scope for spreadsheet
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -45,8 +45,7 @@ app = Flask(__name__)
 CORS(app, origins="*")  # Add CORS support
 
 
-# workbook = client.open_by_key("18OnhVvM-2JBY7xE-Yd7Gft99kX4uSnp0PAY7t1Z4wYw") Actual Sheet
-workbook = client.open_by_key("1ZzFR06jqHqJk3EwVYPCJn8VUeu7Zsty8N_uLvlH1pW8") # Test Sheet
+workbook = client.open_by_key(GOOGLE_SHEET_ID) # Test Sheet
 items = workbook.sheet1
 sold_items = workbook.get_worksheet(1)  # index starts at 0
 
