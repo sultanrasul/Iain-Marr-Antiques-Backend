@@ -14,6 +14,7 @@ import json
 
 # Google Spread Sheet and Auth for the Stocks Spread Sheet
 import gspread
+from gspread_formatting import *
 from google.oauth2.service_account import Credentials
 
 # Printer
@@ -179,6 +180,16 @@ def print_labels():
                 [updated_row],
                 range_name=f"A{row_index}:{chr(64 + len(headers))}{row_index}"
             )
+
+            # Now format the row red, except SKU column (A)
+            fmt_red = CellFormat(
+                backgroundColor=Color(0.9019607843137255, 0.0, 0.054901960784313725)
+            )
+
+            # Apply red format to the rest of the row (B:…)
+            # format_cell_range(items, f"B{row_index}:{chr(64 + len(headers))}{row_index}", fmt_red)
+
+            format_cell_range(items, f"B{row_index}:M{row_index}", fmt_red) # Only changes background to red from B -> L
 
             sold_row = [
                 product.get("sku", ""),
