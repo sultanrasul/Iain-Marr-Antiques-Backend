@@ -9,6 +9,10 @@ load_dotenv()
 
 def send_email(selected_products, customer, emailAddress):
 
+  if emailAddress == "":
+     print("No Email Address Was Provided")
+     return
+
   api_key = os.environ['MAILJET_API_KEY']
   api_secret = os.environ['MAILJET_SECRET_KEY']
   mailjet = Client(auth=(api_key, api_secret), version='v3.1')

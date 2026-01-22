@@ -8,7 +8,6 @@ import time
 from datetime import datetime
 from send_email import send_email
 
-
 import requests
 import json
 
@@ -147,14 +146,16 @@ def print_labels():
         for product in selected_products:
             sku = str(product.get("sku")).strip()
             row_index = None
+            record_row = None
 
             # Find row in Items
             for i, record in enumerate(all_records, start=2):  # start=2 because header is row 1
                 if str(record.get("SKU NO.")).strip() == sku:
                     row_index = i
+                    record_row = record
                     break
 
-            if not row_index:
+            if not row_index or not record_row:
                 continue  # skip if SKU not found
 
             # Normal row for Items (no customer field here)
@@ -162,6 +163,7 @@ def print_labels():
                 product.get("sku", ""),
                 product.get("imSKU", ""),
                 product.get("name", ""),
+                max(0, int(record_row.get("Quantity")) - int(product.get("quantity"))),
                 product.get("price", ""),
                 product.get("dateBought", ""),
                 product.get("seller", ""),
@@ -196,6 +198,7 @@ def print_labels():
                 product.get("imSKU", ""),
                 customer,  # insert customer here
                 product.get("name", ""),
+                product.get("quantity", ""),
                 product.get("price", ""),
                 product.get("dateBought", ""),
                 product.get("seller", ""),
@@ -245,6 +248,7 @@ def modify_product():
         data.get("sku", ""),
         data.get("imSKU", ""),
         data.get("name", ""),
+        data.get("quantity", ""),
         data.get("price", ""),
         data.get("dateBought", ""),
         data.get("seller", ""),
@@ -271,6 +275,7 @@ def add_product():
         data.get("sku", ""),
         data.get("imSKU", ""),
         data.get("name", ""),
+        data.get("quantity", ""),
         data.get("price", ""),
         data.get("dateBought", ""),
         data.get("seller", ""),
