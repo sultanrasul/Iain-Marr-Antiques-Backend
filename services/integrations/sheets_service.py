@@ -4,8 +4,11 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 from config import settings
+from gspread_formatting import *
 
+from schemas.printRequest import PrintRequest
 from schemas.product import Product
+from schemas.soldProduct import SoldProduct
 from utils.timing import timeit
 
 class SheetsService:
@@ -32,8 +35,7 @@ class SheetsService:
         # Optional: useful shared values
         self.today = datetime.now()
 
-
-
+        self.fmt_red = CellFormat(backgroundColor=Color(0.9019607843137255, 0.0, 0.054901960784313725))
 
     def get_stock(self) -> List[Product]:
         """Fetch all rows from the sheet and convert them into Product instances."""
@@ -46,11 +48,14 @@ class SheetsService:
         return products
 
     
-    def find_row_index_by_sku(self, sku: str) -> Optional[int]:
+    def find_row_index_by_sku(self, sku: str) -> Optional[tuple[int, Product]]:
         records = self.items.get_all_records()
         for i, rec in enumerate(records, start=2):  # row 1 is header
             if str(rec.get("SKU NO.", "")).strip() == sku.strip():
-                return i
+                product = Product.from_sheet_row(
+                    {**rec, "row_number": i}
+                )
+                return i, product
         return None
     
     @timeit
@@ -59,19 +64,71 @@ class SheetsService:
         
         if current_row_values[0] != product.sku_no:
             # Row shifted! Fall back to search by SKU
-            row_index = self.find_row_index_by_sku(product.sku_no)
+            row_index, _ = self.find_row_index_by_sku(product.sku_no)
             if row_index is None:
-                return False
+                return False 
             product.row_number = row_index  # update cached row_number
         
         headers = self.items.row_values(1)
         row_data = product.to_sheet_row()
-        self.items.update(
-            f"A{product.row_number}:{chr(64 + len(headers))}{product.row_number}",
-            [row_data]
-        )
+        self.items.update( f"A{product.row_number}:{chr(64 + len(headers))}{product.row_number}", [row_data] )
         return True
 
     
     def add_product(self, product: Product):
         self.items.append_row(product.to_sheet_row(), value_input_option="USER_ENTERED")
+
+    def mark_row_sold_red(self, row_number: int):
+        headers = self.items.row_values(1)
+        format_cell_range( self.items, f"B{row_number}:{chr(64 + len(headers))}{row_number}", self.fmt_red )
+
+    def get_sold_items(self) -> List[SoldProduct]:
+        rows = self.sold_items.get_all_records()
+        return [
+            SoldProduct.from_sheet_row({**row, "row_number": i + 2})
+            for i, row in enumerate(rows)
+        ]
+    
+    def add_sold_product(self, product: SoldProduct):
+        self.sold_items.append_row(product.to_sheet_row(), value_input_option="USER_ENTERED")
+    
+    def update_sold_product(self, product: SoldProduct) -> bool:
+        headers = self.sold_items.row_values(1)
+        self.sold_items.update(
+            f"A{product.row_number}:{chr(64 + len(headers))}{product.row_number}",
+            [product.to_sheet_row()]
+        )
+        return True
+    
+    def mark_as_sold(self, request: PrintRequest):
+        all_records = self.items.get_all_records()
+
+        for product in request.products:
+
+            row_index = None
+            record_row = None
+
+            # Find row in Items
+            for i, record in enumerate(all_records, start=2):  # start=2 because header is row 1
+                if str(record.get("SKU NO.")).strip() == product.sku_no:
+                    row_index = i
+                    record_row = record
+                    break
+            
+            if not row_index or not record_row:
+                continue  # skip if SKU not found
+
+            quantity_sold = product.quantity               # the number being sold
+            remaining_quantity = max(0, int(record_row.get("Quantity")) - quantity_sold)
+
+            product.quantity = remaining_quantity
+            product.sold = True
+
+            self.update_product(product)
+            self.mark_row_sold_red(row_index)
+
+            soldProduct: SoldProduct = SoldProduct.from_product(product=product, customer_name=request.customer_name,quantity=quantity_sold)
+            soldProduct.selling_price *= soldProduct.quantity
+            self.add_sold_product(soldProduct)
+        
+        return True
