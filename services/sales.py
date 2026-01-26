@@ -2,6 +2,7 @@ import subprocess
 
 from schemas.product import Product
 from schemas.printRequest import PrintRequest
+from schemas.soldProduct import SoldProduct
 from utils.exceptions import PrinterNotConnected, http_exception_handler
 
 from services.integrations.printer_service import PrinterIntegration
@@ -29,8 +30,7 @@ class SalesService:
             emailService.send_email(request)
             
         if request.mark_as_sold:
-            pass
-            # mark_as_sold
+            sheetsService.mark_as_sold(request)
 
         
         return { "success": True, "sold_count": len(request.products) if request.mark_as_sold else 0, "printed_count": len(request.products)}
