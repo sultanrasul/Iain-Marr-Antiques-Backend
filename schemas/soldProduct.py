@@ -6,14 +6,16 @@ from schemas.product import Product
 
 class SoldProduct(Product):
     customer_name: Optional[str] = Field(None, example="Marion Morrison-Boyd")
+    total_price: float = Field(0.0, example=1350.0)
 
     SHEET_HEADERS: ClassVar[list[str]] = [
         "SKU NO.",
         "IM SKU",
         "Customers Name",
         "ITEM DESCRIPTION",
-        "Quantity",
         "SELLING PRICE",
+        "Quantity",
+        "TOTAL PRICE",
         "DATE BOUGHT",
         "NAME/ADDRESS SELLER",
         "PURCHASE PRICE",
@@ -37,16 +39,17 @@ class SoldProduct(Product):
         )
 
     @classmethod
-    def from_product( cls, product: Product, *, customer_name: str, date_sold: Optional[str] = None, quantity: Optional[int] = None) -> "SoldProduct":
+    def from_product( cls, product: Product, *, customer_name: str, date_sold: Optional[str] = None, quantity: Optional[int] = None, total_price: Optional[float] = None) -> "SoldProduct":
         """
         Factory method to create a SoldProduct from a Product.
         Only specify SoldProduct-specific fields here.
         """
-        data = product.model_dump(exclude={"date_sold", "quantity", "sold"})
+        data = product.model_dump(exclude={"date_sold", "quantity", "sold", "total_price"})
         return cls(
             **data,
             customer_name=customer_name,
             date_sold=date_sold or datetime.now().strftime("%-d.%-m.%y %H:%M"),
+            total_price = total_price if total_price is not None else product.quantity * product.selling_price,
             quantity=quantity if quantity is not None else product.quantity,
             sold=True
         )
@@ -61,8 +64,9 @@ class SoldProduct(Product):
             "IM SKU": self.im_sku,
             "Customers Name": self.customer_name,
             "ITEM DESCRIPTION": self.item_description,
-            "Quantity": self.quantity,
             "SELLING PRICE": self.selling_price,
+            "Quantity": self.quantity,
+            "TOTAL PRICE": self.total_price,
             "DATE BOUGHT": self.date_bought,
             "NAME/ADDRESS SELLER": self.seller_name_address,
             "PURCHASE PRICE": self.purchase_price,

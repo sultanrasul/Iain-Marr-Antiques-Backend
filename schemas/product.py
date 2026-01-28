@@ -7,8 +7,8 @@ class Product(BaseModel):
     sku_no: str = Field(example="IMA9000000")
     im_sku: Optional[str] = Field(None, example="529-308")
     item_description: Optional[str] = Field(None, example="Fast API Testing")
-    quantity: int = Field(0, example=1)
     selling_price: float = Field(0.0, example=1350.0)
+    quantity: int = Field(0, example=1)
     date_bought: Optional[str] = Field(None, example="28.11.22")
     seller_name_address: Optional[str] = Field(None, example="Fast-APi")
     purchase_price: float = Field(0.0, example=100.0)
@@ -25,8 +25,8 @@ class Product(BaseModel):
         "SKU NO.",
         "IM SKU",
         "ITEM DESCRIPTION",
-        "Quantity",
         "SELLING PRICE",
+        "Quantity",
         "DATE BOUGHT",
         "NAME/ADDRESS SELLER",
         "PURCHASE PRICE",
@@ -83,8 +83,8 @@ class Product(BaseModel):
             "SKU NO.": self.sku_no,
             "IM SKU": self.im_sku,
             "ITEM DESCRIPTION": self.item_description,
-            "Quantity": self.quantity,
             "SELLING PRICE": self.selling_price,
+            "Quantity": self.quantity,
             "DATE BOUGHT": self.date_bought,
             "NAME/ADDRESS SELLER": self.seller_name_address,
             "PURCHASE PRICE": self.purchase_price,

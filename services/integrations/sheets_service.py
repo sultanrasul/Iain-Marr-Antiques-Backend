@@ -122,13 +122,15 @@ class SheetsService:
             remaining_quantity = max(0, int(record_row.get("Quantity")) - quantity_sold)
 
             product.quantity = remaining_quantity
-            product.sold = True
+            product.sold = True if remaining_quantity == 0 else False
 
             self.update_product(product)
-            self.mark_row_sold_red(row_index)
 
-            soldProduct: SoldProduct = SoldProduct.from_product(product=product, customer_name=request.customer_name,quantity=quantity_sold)
-            soldProduct.selling_price *= soldProduct.quantity
+            # Done through "Conditional Formatting" in Google Sheets
+            # if product.sold:
+            #     self.mark_row_sold_red(row_index)
+
+            soldProduct: SoldProduct = SoldProduct.from_product(product=product, customer_name=request.customer_name,quantity=quantity_sold,total_price=quantity_sold*product.selling_price)
             self.add_sold_product(soldProduct)
         
         return True
