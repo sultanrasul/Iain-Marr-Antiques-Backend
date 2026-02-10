@@ -38,7 +38,9 @@ class SalesService:
     @staticmethod
     def print_receipt(request: PrintRequest):
 
-        printer.print_header_image( printer_name="Star_TSP800_", image_path="/home/sultanrasul/backend/header.jpeg")
+        printer.ensure_connected()
+
+        printer.print_header_image( printer_name="Star_TSP800_", image_path="/home/sultanrasul/backend-fastapi/header.jpeg")
 
         printer.initialize()
         printer.set_uk_charset()
@@ -57,6 +59,7 @@ class SalesService:
         total = SalesService.calculate_total(request)
 
         printer.print_subtotal(total)
+        printer.feed()
         printer.print_total(total)
 
         printer.feed(2)
