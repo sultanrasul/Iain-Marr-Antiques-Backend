@@ -15,6 +15,11 @@ class PrinterIntegration:
         self.printer = None
         self.line_width = 68
 
+
+    def ensure_connected(self):
+        if not self.is_connected():
+            self.connect()
+
     def connect(self) -> bool:
         """
         Attempt to connect to the printer.
@@ -154,6 +159,10 @@ class PrinterIntegration:
         
         spaces = self.line_width - len(label) - len(value) - (2 if currency else 1)
         spaces = max(spaces, 1)
+
+        total_len = len(label) + spaces + (2 if currency else 1) + len(value)
+        print("DEBUG WIDTH:", total_len, "/", self.line_width)
+
 
         self.write(label.encode("cp1252"))
         self.write(b" " * spaces)
