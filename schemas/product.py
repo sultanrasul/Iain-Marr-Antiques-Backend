@@ -8,7 +8,7 @@ class Product(BaseModel):
     im_sku: Optional[str] = Field(None, example="529-308")
     item_description: Optional[str] = Field(None, example="Fast API Testing")
     selling_price: float = Field(0.0, example=1350.0)
-    quantity: int = Field(0, example=1)
+    quantity: int = Field(1, example=1)
     date_bought: Optional[str] = Field(None, example="28.11.22")
     seller_name_address: Optional[str] = Field(None, example="Fast-APi")
     purchase_price: float = Field(0.0, example=100.0)
