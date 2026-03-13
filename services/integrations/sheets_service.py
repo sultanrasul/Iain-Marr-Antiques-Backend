@@ -26,6 +26,7 @@ class SheetsService:
         self.client = gspread.authorize(creds)
 
         sheet_id = settings.GOOGLE_SHEETS_ID
+        print(f"Starting Connection to google sheets with the ID: {sheet_id}")
         self.workbook = self.client.open_by_key(sheet_id)
 
         # Worksheets
@@ -44,7 +45,6 @@ class SheetsService:
          Product.from_sheet_row({**row, "row_number": i + 2})  # +2 if row 1 is headers
          for i, row in enumerate(rows)
         ]
-        print(products[0])
         return products
 
     
@@ -119,7 +119,10 @@ class SheetsService:
                 continue  # skip if SKU not found
 
             quantity_sold = product.quantity               # the number being sold
-            remaining_quantity = max(0, int(record_row.get("Quantity")) - quantity_sold)
+
+            # If the Quantity Row is empty set it to 1
+            sheet_quantity = int(record_row.get("Quantity") or 1)
+            remaining_quantity = max(0, sheet_quantity - quantity_sold)
 
             product.quantity = remaining_quantity
             product.sold = True if remaining_quantity == 0 else False

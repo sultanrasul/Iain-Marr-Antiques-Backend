@@ -9,7 +9,7 @@ salesService = SalesService()
 router = APIRouter(prefix="/sales", tags=["sales"])
 
 @router.post("/print-request")
-async def get_reviews(request: PrintRequest):
+async def print_request(request: PrintRequest):
     """Print Request"""
     
 
