@@ -102,6 +102,7 @@ class SheetsService:
     
     def mark_as_sold(self, request: PrintRequest):
         all_records = self.items.get_all_records()
+        date_sold = datetime.now().strftime("%-d.%-m.%y %H:%M")
 
         for product in request.products:
 
@@ -133,7 +134,7 @@ class SheetsService:
             # if product.sold:
             #     self.mark_row_sold_red(row_index)
 
-            soldProduct: SoldProduct = SoldProduct.from_product(product=product, customer_name=request.customer_name,quantity=quantity_sold,total_price=quantity_sold*product.selling_price)
+            soldProduct: SoldProduct = SoldProduct.from_product(product=product, customer_name=request.customer_name,quantity=quantity_sold,date_sold=date_sold,total_price=quantity_sold*product.selling_price)
             self.add_sold_product(soldProduct)
         
         return True

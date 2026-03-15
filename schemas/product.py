@@ -63,7 +63,7 @@ class Product(BaseModel):
             sku_no=safe_str(row.get("SKU NO.")),
             im_sku=safe_str(row.get("IM SKU")),
             item_description=safe_str(row.get("ITEM DESCRIPTION")),
-            quantity=safe_int(row.get("Quantity")),
+            quantity=safe_int(row.get("Quantity"), default=-1),
             selling_price=safe_float(row.get("SELLING PRICE")),
             date_bought=safe_str(row.get("DATE BOUGHT")),
             seller_name_address=safe_str(row.get("NAME/ADDRESS SELLER")),
