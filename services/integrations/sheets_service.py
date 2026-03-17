@@ -102,7 +102,9 @@ class SheetsService:
     
     def mark_as_sold(self, request: PrintRequest):
         all_records = self.items.get_all_records()
-        date_sold = datetime.now().strftime("%-d.%-m.%y %H:%M")
+        # date_sold = datetime.now().strftime("%-d.%-m.%y %H:%M")
+        date_sold = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # SQLite format
+        
 
         for product in request.products:
 
@@ -138,3 +140,40 @@ class SheetsService:
             self.add_sold_product(soldProduct)
         
         return True
+    
+    def convert_old_date_format(self):
+        sold_products = self.get_sold_items()
+        headers = self.sold_items.row_values(1)
+
+        updated_rows = []
+        row_ranges = []
+
+        for product in sold_products:
+            old_date = product.date_sold
+
+            if not old_date or "/" in old_date:
+                continue  # skip already converted
+
+            try:
+                parsed_date = datetime.strptime(old_date.strip(), "%d.%m.%y %H:%M")
+                new_date = parsed_date.strftime("%Y-%m-%d %H:%M:%S")  # SQLite format
+
+                product.date_sold = new_date
+
+                row_data = product.to_sheet_row()
+                row_range = f"A{product.row_number}:{chr(64 + len(headers))}{product.row_number}"
+
+                row_ranges.append(row_range)
+                updated_rows.append(row_data)
+
+            except ValueError:
+                continue
+
+        # 🚀 Batch update instead of per-row update
+        if row_ranges:
+            data = [
+                {"range": r, "values": [v]}
+                for r, v in zip(row_ranges, updated_rows)
+            ]
+            self.sold_items.batch_update(data)
+

@@ -48,7 +48,7 @@ class SoldProduct(Product):
         return cls(
             **data,
             customer_name=customer_name,
-            date_sold=date_sold or datetime.now().strftime("%-d.%-m.%y %H:%M"),
+            date_sold=date_sold or datetime.now().strftime("%Y-%m-%d %H:%M:%S"), #sqlite format
             total_price = total_price if total_price is not None else product.quantity * product.selling_price,
             quantity=quantity if quantity is not None else product.quantity,
             sold=True
