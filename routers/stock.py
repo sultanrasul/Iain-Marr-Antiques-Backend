@@ -24,3 +24,8 @@ async def modify_product(request: Product):
     """Add Product"""
 
     return StockService.add_product(request)
+
+@router.get("/{order_id}/products")
+async def get_order_products(order_id: str):
+    """Get all products in a specific order/sale"""
+    return StockService.get_order_products(order_id)

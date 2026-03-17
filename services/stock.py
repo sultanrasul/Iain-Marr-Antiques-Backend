@@ -7,6 +7,9 @@ sheets_service = SheetsService()
 from services.integrations.printer_service import PrinterIntegration
 printerService = PrinterIntegration()
 
+from services.integrations.database_service import DatabaseService
+databaseService = DatabaseService("database.sqlite")
+
 
 class StockService:
     @staticmethod
@@ -15,11 +18,12 @@ class StockService:
         Return all stock items from Google Sheets
         """
         # return sheets_service.get_stock()
-        return { "data": sheets_service.get_stock(), "printer_connected": printerService.connect() }
+        return { "products": databaseService.get_stock(),"sales": databaseService.get_sales(), "printer_connected": printerService.connect() }
 
     @staticmethod
     def add_product(product: Product):
         """
+
         Add a new product to stock
         """
         return sheets_service.add_product(product)
@@ -36,3 +40,11 @@ class StockService:
             raise NotFoundError(f"Product with SKU {product.sku_no} not found")
 
         return updated
+    
+    @staticmethod
+    def get_order_products(order_id: str):
+        """
+        Get products by order ID
+        """
+
+        return databaseService.get_order_products(order_id)

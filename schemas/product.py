@@ -63,7 +63,7 @@ class Product(BaseModel):
             sku_no=safe_str(row.get("SKU NO.")),
             im_sku=safe_str(row.get("IM SKU")),
             item_description=safe_str(row.get("ITEM DESCRIPTION")),
-            quantity=safe_int(row.get("Quantity")),
+            quantity=safe_int(row.get("Quantity"), default=-1),
             selling_price=safe_float(row.get("SELLING PRICE")),
             date_bought=safe_str(row.get("DATE BOUGHT")),
             seller_name_address=safe_str(row.get("NAME/ADDRESS SELLER")),
@@ -97,3 +97,29 @@ class Product(BaseModel):
             "PHOTOGRAPH": self.photograph,
         }
         return [mapping.get(h, "") for h in self.SHEET_HEADERS]
+    
+    @classmethod
+    def from_db_row(cls, row: dict) -> "Product":
+
+        def safe_str(value):
+            if value is None:
+                return None
+            return str(value)
+        
+        def safe_bool(value):
+            if value is None:
+                return False  # Default to False if not sold
+            return bool(value)
+
+        return cls(
+            row_number=row.get("product_id"),
+            sku_no=row.get("sku_no", ""),
+            im_sku=row.get("im_sku"),
+            item_description=row.get("description"),
+            quantity=row.get("quantity", 1),
+            selling_price=row.get("selling_price", 0.0),
+            purchase_price=row.get("purchase_price", 0.0),
+            date_bought=safe_str(row.get("date_purchased")),
+            seller_name_address=row.get("name/address_seller"),
+            sold=safe_bool(row.get("sold")),
+        )

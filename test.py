@@ -10,6 +10,8 @@ databaseService = DatabaseService("database.sqlite")
 
 import csv
 
+# sheetsService.convert_old_date_format()
+
 products = sheetsService.get_stock()
 errors = databaseService.import_products_to_db(products=products)
 print(errors)

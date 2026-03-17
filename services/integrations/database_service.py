@@ -1,5 +1,5 @@
 import json
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
@@ -21,9 +21,14 @@ class DatabaseService:
         """
         self.db_path = db_path
 
+        
         # Ensure the products table exists on init
         self.conn = sqlite3.connect(self.db_path)
+        
+        self.conn.row_factory = sqlite3.Row
+
         self.cursor = self.conn.cursor()
+
 
         self.cursor.execute("PRAGMA foreign_keys = ON;")
 
@@ -74,7 +79,6 @@ class DatabaseService:
         """)
         self.conn.commit()
         
-
     def import_products_to_db(self, products: List[Product]) -> List[Tuple[int, str]]:
         """
         Import Product instances into the existing `products` table.
@@ -124,72 +128,156 @@ class DatabaseService:
         self.conn.commit()
         return errors
 
-    def import_sold_products_to_db(self, sold_products: List[SoldProduct]) -> List[Tuple[int, str]]:
-        """
-        Import SoldProduct instances into the database.
-        Groups sold products by (date_sold, customer_name).
-        """
-        errors = []
 
-        # Step 1: Group products by (date_sold, customer_name or 'anonymous')
-        grouped_sales = defaultdict(list)
+    def import_sold_products_to_db(self, sold_products: List[SoldProduct]) -> List[Tuple[int, str]]:
+        errors: List[Tuple[int, str]] = []
+
+        # Reset sold data
+        self.cursor.execute("DELETE FROM sold_products")
+        self.cursor.execute("DELETE FROM orders")
+
+        # Reset stock (restore original quantities)
+        self.cursor.execute("""
+            UPDATE products
+            SET quantity = quantity
+        """)
+
+        grouped_sales: Dict[Tuple[str, str, str], List[SoldProduct]] = defaultdict(list)
+
+        # Group rows into orders
         for sold in sold_products:
+
             if not sold.date_sold:
-                errors.append((sold.row_number, "Missing date_sold, cannot group"))
+                errors.append((sold.row_number, "Missing date_sold"))
                 continue
-            key = (sold.date_sold, sold.customer_name or "")
+
+            key = (
+                sold.date_sold,
+                sold.customer_name or "",
+                sold.invoice_no_xero or ""
+            )
+
             grouped_sales[key].append(sold)
 
-        # Step 2: Insert grouped sales as orders
-        for (date_sold, customer_name_key), products_in_order in grouped_sales.items():
-            try:
-                customer_id = None
-                if customer_name_key != "":
-                    self.cursor.execute("""
-                        INSERT OR IGNORE INTO customers (name)
-                        VALUES (?)
-                    """, (customer_name_key,))
-                    self.cursor.execute("SELECT customer_id FROM customers WHERE name = ?", (customer_name_key,))
-                    customer_id = self.cursor.fetchone()[0]
+        # Create orders
+        for (date_sold, customer_name, invoice_no), products in grouped_sales.items():
 
-                # Sum total_price for the order
-                total_amount = sum(p.selling_price for p in products_in_order)
+            customer_id = None
 
-                # Insert order
+            if customer_name:
+                self.cursor.execute(
+                    "INSERT OR IGNORE INTO customers (name) VALUES (?)",
+                    (customer_name,)
+                )
+
+                self.cursor.execute(
+                    "SELECT customer_id FROM customers WHERE name = ?",
+                    (customer_name,)
+                )
+
+                customer_id = self.cursor.fetchone()[0]
+
+            total_amount = sum(p.selling_price * p.quantity for p in products)
+
+            self.cursor.execute("""
+                INSERT INTO orders (customer_id, date_sold, invoice_no, total_amount)
+                VALUES (?, ?, ?, ?)
+            """, (customer_id, date_sold, invoice_no, total_amount))
+
+            order_id = self.cursor.lastrowid
+
+            # Insert order items
+            for sold in products:
+                self.cursor.execute(
+                    "SELECT product_id, quantity FROM products WHERE sku_no = ?",
+                    (sold.sku_no,)
+                )
+
+                row = self.cursor.fetchone()
+
+                if not row:
+                    errors.append((sold.row_number, f"SKU not found: {sold.sku_no}"))
+                    continue
+
+                product_id, current_qty = row
+
                 self.cursor.execute("""
-                    INSERT INTO orders (customer_id, date_sold, invoice_no, total_amount)
-                    VALUES (?, ?, ?, ?)
-                """, (customer_id, date_sold ,None, total_amount))
-                order_id = self.cursor.lastrowid
+                    INSERT INTO sold_products (order_id, product_id, quantity)
+                    VALUES (?, ?, ?)
+                """, (order_id, product_id, sold.quantity))
 
-                # Insert all items in this order
-                for sold in products_in_order:
-                    # Find product_id
-                    self.cursor.execute("SELECT product_id FROM products WHERE sku_no = ?", (sold.sku_no,))
-                    product_row = self.cursor.fetchone()
-                    if not product_row:
-                        errors.append((sold.row_number, f"SKU not found in products: {sold.sku_no}"))
-                        continue
-                    product_id = product_row[0]
+                new_qty = max(current_qty - sold.quantity, 0)
 
-                    # Insert order_item
-                    self.cursor.execute("""
-                        INSERT INTO sold_products (order_id, product_id, quantity)
-                        VALUES (?, ?, ?)
-                    """, (order_id, product_id, sold.quantity))
-
-                    # Update product quantity
-                    self.cursor.execute("""
-                        UPDATE products
-                        SET quantity = quantity - ?
-                        WHERE product_id = ?
-                    """, (sold.quantity, product_id))
-
-            except Exception as e:
-                for sold in products_in_order:
-                    errors.append((sold.row_number, str(e)))
-                continue
+                self.cursor.execute("""
+                    UPDATE products
+                    SET quantity = ?
+                    WHERE product_id = ?
+                """, (new_qty, product_id))
 
         self.conn.commit()
+
         return errors
 
+
+    def get_stock(self) -> List[Product]:
+        self.cursor.execute(
+        """
+            SELECT 
+                *,
+                CASE 
+                    WHEN quantity = 0 THEN 1
+                    ELSE 0
+                END AS sold
+            FROM products;
+        """)
+        rows = self.cursor.fetchall()
+
+        return [Product.from_db_row(dict(row)) for row in rows]
+    
+    def get_sales(self) -> int:
+        self.cursor.execute(
+        """
+            -- Display Sold Items with number of products purchased per order
+            SELECT 
+                o.order_id,
+                c.name AS customer_name,
+                o.date_sold,
+                o.total_amount,
+                COALESCE(SUM(sp.quantity), 0) AS items_purchased
+            FROM orders o
+            INNER JOIN customers c
+                ON o.customer_id = c.customer_id
+            LEFT JOIN sold_products sp
+                ON sp.order_id = o.order_id
+            GROUP BY o.order_id, c.name, o.date_sold, o.total_amount
+            ORDER BY o.date_sold DESC;
+        """
+        )
+
+        return self.cursor.fetchall()
+
+    def get_order_products(self, order_id: str) -> List[Product]:
+        self.cursor.execute(
+        """
+            -- Get a list of products by order id
+            SELECT 
+                p.product_id,
+                p.sku_no,
+                p.im_sku,
+                p.description,
+                sp.quantity,
+                p.selling_price,
+                p.purchase_price,
+                p.date_purchased,
+                p."name/address_seller" 
+            FROM sold_products sp
+            INNER JOIN products p
+                ON sp.product_id = p.product_id
+            WHERE order_id = ?;
+        """, (order_id,))
+        rows = self.cursor.fetchall()
+
+        return [Product.from_db_row(dict(row)) for row in rows]
+    
+
+    

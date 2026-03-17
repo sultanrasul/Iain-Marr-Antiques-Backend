@@ -11,6 +11,5 @@ router = APIRouter(prefix="/sales", tags=["sales"])
 @router.post("/print-request")
 async def print_request(request: PrintRequest):
     """Print Request"""
-    
 
     return salesService.checkout(request)
