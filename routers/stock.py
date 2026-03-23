@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
 
+from schemas.getSalesRequest import GetSalesRequest
 from schemas.product import Product
 from services.stock import StockService
 
@@ -12,6 +13,12 @@ async def get_stock():
     """Get Stock"""
 
     return StockService.get_stock()
+
+@router.get("/get-sales")
+async def get_sales(request: GetSalesRequest = Depends()):
+    """Get Sales with filters"""
+    # Extract query parameters from request body
+    return StockService.get_sales(request)
 
 @router.post("/modify-product")
 async def modify_product(request: Product):

@@ -28,9 +28,12 @@ class SalesService:
         # Send Email
         if request.email_address:
             emailService.send_email(request)
-            
+        
+        # Add sale to Google Sheets
         if request.mark_as_sold:
             sheetsService.mark_as_sold(request)
+
+        # Add sale to Database
 
         
         return { "success": True, "sold_count": len(request.products) if request.mark_as_sold else 0, "printed_count": len(request.products)}

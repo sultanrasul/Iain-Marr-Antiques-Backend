@@ -1,3 +1,4 @@
+from schemas.getSalesRequest import GetSalesRequest
 from schemas.product import Product
 from utils.exceptions import NotFoundError
 
@@ -15,10 +16,18 @@ class StockService:
     @staticmethod
     def get_stock():
         """
-        Return all stock items from Google Sheets
+        Return all stock items from database
         """
         # return sheets_service.get_stock()
-        return { "products": databaseService.get_stock(),"sales": databaseService.get_sales(), "printer_connected": printerService.connect() }
+        return { "products": databaseService.get_stock(), "printer_connected": printerService.connect() }
+    
+    @staticmethod
+    def get_sales(request: GetSalesRequest):
+        """
+        Return all sales from database
+        """
+        # Extract query parameters from request body
+        return databaseService.get_sales(request)
 
     @staticmethod
     def add_product(product: Product):

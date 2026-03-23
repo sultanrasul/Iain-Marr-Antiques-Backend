@@ -24,8 +24,9 @@ SELECT
 FROM products;
 
 -- Display Sold Items with number of products purchased per order
-SELECT 
-	o.order_id,
+-- Get a summary of orders with optional filters
+SELECT
+    o.order_id,
     c.name AS customer_name,
     o.date_sold,
     o.total_amount,
@@ -34,9 +35,22 @@ FROM orders o
 INNER JOIN customers c
     ON o.customer_id = c.customer_id
 LEFT JOIN sold_products sp
-    ON sp.order_id = o.order_id
-GROUP BY o.order_id, c.name, o.date_sold, o.total_amount
-ORDER BY o.date_sold DESC;
+    ON o.order_id = sp.order_id
+WHERE
+    (:order_id IS NULL OR o.order_id = :order_id)
+    AND (:customer_id IS NULL OR o.customer_id = :customer_id)
+    AND (:date_from IS NULL OR o.date_sold >= :date_from)
+    AND (:date_to IS NULL OR o.date_sold <= :date_to)
+GROUP BY
+    o.order_id,
+    c.name,
+    o.date_sold,
+    o.total_amount
+HAVING
+    (:min_items IS NULL OR COALESCE(SUM(sp.quantity), 0) >= :min_items)
+    AND (:min_price IS NULL OR o.total_amount >= :min_price)
+ORDER BY
+    o.date_sold DESC, o.order_id;
 
 -- Get a list of products by order id
 SELECT 
@@ -53,3 +67,5 @@ FROM sold_products sp
 INNER JOIN products p
     ON sp.product_id = p.product_id
 WHERE order_id = 3;
+
+S

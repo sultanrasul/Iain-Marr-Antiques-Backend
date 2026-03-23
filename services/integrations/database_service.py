@@ -9,6 +9,7 @@ import csv
 import sqlite3
 from collections import defaultdict
 
+from schemas.getSalesRequest import GetSalesRequest
 from schemas.printRequest import PrintRequest
 from schemas.product import Product
 from schemas.soldProduct import SoldProduct
@@ -234,10 +235,8 @@ class DatabaseService:
 
         return [Product.from_db_row(dict(row)) for row in rows]
     
-    def get_sales(self) -> int:
-        self.cursor.execute(
-        """
-            -- Display Sold Items with number of products purchased per order
+    def get_sales(self, request: GetSalesRequest):
+        query = """
             SELECT 
                 o.order_id,
                 c.name AS customer_name,
@@ -249,11 +248,32 @@ class DatabaseService:
                 ON o.customer_id = c.customer_id
             LEFT JOIN sold_products sp
                 ON sp.order_id = o.order_id
-            GROUP BY o.order_id, c.name, o.date_sold, o.total_amount
-            ORDER BY o.date_sold DESC;
+            WHERE
+                (:order_id IS NULL OR o.order_id = :order_id)
+                AND (:customer_id IS NULL OR o.customer_id = :customer_id)
+                AND (:customer_name IS NULL OR c.name LIKE :customer_name)
+                AND (:date_from IS NULL OR o.date_sold >= :date_from)
+                -- Adjust :date_to to include the entire day if specified
+                AND (:date_to IS NULL OR o.date_sold <= datetime(:date_to, '+1 day', '-1 second'))
+            GROUP BY 
+                o.order_id, c.name, o.date_sold, o.total_amount
+            HAVING
+                (:min_items IS NULL OR COALESCE(SUM(sp.quantity), 0) >= :min_items)
+                AND (:min_price IS NULL OR o.total_amount >= :min_price)
+            ORDER BY o.date_sold DESC, o.order_id;
         """
-        )
 
+        params = {
+            "order_id": request.order_id,
+            "customer_id": request.customer_id,
+            "customer_name": f"%{request.customer_name}%" if request.customer_name else None,
+            "date_from": request.date_from,
+            "date_to": request.date_to,
+            "min_items": request.min_items,
+            "min_price": request.min_price
+        }
+
+        self.cursor.execute(query, params)
         return self.cursor.fetchall()
 
     def get_order_products(self, order_id: str) -> List[Product]:
