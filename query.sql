@@ -68,4 +68,10 @@ INNER JOIN products p
     ON sp.product_id = p.product_id
 WHERE order_id = 3;
 
-S
+-- Get List of names in sales order 
+SELECT 
+	c.name,
+	o.date_sold
+FROM orders o
+INNER JOIN customers c
+	ON o.customer_id = c.customer_id;

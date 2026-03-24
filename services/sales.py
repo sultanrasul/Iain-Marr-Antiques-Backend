@@ -14,9 +14,21 @@ emailService = EmailService()
 from services.integrations.sheets_service import SheetsService
 sheetsService = SheetsService()
 
+from services.integrations.database_service import DatabaseService
+databaseService = DatabaseService()
+
 class SalesService:
     @staticmethod
     def checkout(request: PrintRequest):
+        order_id: str = None
+
+        if request.mark_as_sold:
+            # Add sale to Google Sheets
+            sheetsService.mark_as_sold(request)
+
+            # Add sale to Database
+            order_id = databaseService.add_sold_product(request)
+
         # Check if printer is connected
         if request.copies !=0 and printer.connect() == False:
             raise http_exception_handler(exc=PrinterNotConnected())
@@ -29,17 +41,10 @@ class SalesService:
         if request.email_address:
             emailService.send_email(request)
         
-        # Add sale to Google Sheets
-        if request.mark_as_sold:
-            sheetsService.mark_as_sold(request)
-
-        # Add sale to Database
-
-        
         return { "success": True, "sold_count": len(request.products) if request.mark_as_sold else 0, "printed_count": len(request.products)}
 
     @staticmethod
-    def print_receipt(request: PrintRequest):
+    def print_receipt(request: PrintRequest, order_id: str):
 
         printer.ensure_connected()
 

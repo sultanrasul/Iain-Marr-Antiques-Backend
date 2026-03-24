@@ -10,6 +10,7 @@ from schemas.printRequest import PrintRequest
 from schemas.product import Product
 from schemas.soldProduct import SoldProduct
 from utils.timing import timeit
+import copy
 
 class SheetsService:
     def __init__(self):
@@ -114,8 +115,6 @@ class SheetsService:
     
     def mark_as_sold(self, request: PrintRequest):
         all_records = self.items.get_all_records()
-        # date_sold = datetime.now().strftime("%-d.%-m.%y %H:%M")
-        date_sold = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # SQLite format
 
         for product in request.products:
 
@@ -123,7 +122,7 @@ class SheetsService:
             record_row = None
 
             # Find row in Items
-            for i, record in enumerate(all_records, start=2):  # start=2 because header is row 1
+            for i, record in enumerate(all_records, start=2):
                 if str(record.get("SKU NO.")).strip() == product.sku_no:
                     row_index = i
                     record_row = record
@@ -132,22 +131,33 @@ class SheetsService:
             if not row_index or not record_row:
                 continue  # skip if SKU not found
 
-            quantity_sold = product.quantity               # the number being sold
+            # Keep the original quantity sold
+            quantity_sold = product.quantity
 
-            # If the Quantity Row is empty set it to 1
+            # Calculate remaining stock from sheet
             sheet_quantity = int(record_row.get("Quantity") or 1)
-            remaining_quantity = max(0, sheet_quantity - quantity_sold)
+            remaining_stock = max(0, sheet_quantity - quantity_sold)
 
-            product.quantity = remaining_quantity
-            product.sold = True if remaining_quantity == 0 else False
+            # Make a copy of the product for updating stock
+            product_copy = copy.deepcopy(product)  # standard library copy
+            product_copy.quantity = remaining_stock
 
-            self.update_product(product)
+            # Update the stock in Google Sheets / database
+            self.update_product(product_copy)
 
-            # Done through "Conditional Formatting" in Google Sheets
-            # if product.sold:
-            #     self.mark_row_sold_red(row_index)
+            # Mark original product as sold if stock depleted
+            product.sold = True if remaining_stock == 0 else False
 
-            soldProduct: SoldProduct = SoldProduct.from_product(product=product, customer_name=request.customer_name,quantity=quantity_sold,date_sold=date_sold,total_price=quantity_sold*product.selling_price)
+            # Create sold product using original sold quantity
+            soldProduct: SoldProduct = SoldProduct.from_product(
+                product=product,
+                customer_name=request.customer_name,
+                quantity=quantity_sold,
+                date_sold=request.date_sold,
+                total_price=quantity_sold * product.selling_price
+            )
+
+            # Add to database
             self.add_sold_product(soldProduct)
         
         return True

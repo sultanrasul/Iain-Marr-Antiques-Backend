@@ -11,3 +11,9 @@ class PrintRequest(BaseModel):
 
     customer_name: Optional[str] = Field(example="Sultan Rasul",default="")
     email_address: Optional[str] = Field(example="example@email.com",default="")
+
+    date_sold: Optional[str] = Field(
+        default=None,
+        example="2026-03-24 14:30:00",
+        description="Format: %Y-%m-%d %H:%M:%S"
+    )

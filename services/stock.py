@@ -35,7 +35,11 @@ class StockService:
 
         Add a new product to stock
         """
-        return sheets_service.add_product(product)
+
+        sheets_new_product = sheets_service.add_product(product)
+        databaseService.add_product(product)
+
+        return sheets_new_product
 
     @staticmethod
     def modify_product(product: Product):
@@ -47,6 +51,8 @@ class StockService:
 
         if not updated:
             raise NotFoundError(f"Product with SKU {product.sku_no} not found")
+
+        databaseService.modify_product(product)
 
         return updated
     

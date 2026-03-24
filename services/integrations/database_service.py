@@ -298,6 +298,162 @@ class DatabaseService:
         rows = self.cursor.fetchall()
 
         return [Product.from_db_row(dict(row)) for row in rows]
-    
 
+    def add_product(self, product: Product) -> Optional[str]:
+        try:
+            self.cursor.execute("""
+                INSERT INTO products (
+                    sku_no,
+                    im_sku,
+                    description,
+                    quantity,
+                    selling_price,
+                    purchase_price,
+                    date_purchased,
+                    "name/address_seller"
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                product.sku_no.strip(),
+                product.im_sku,
+                product.item_description,
+                product.quantity,
+                product.selling_price,
+                product.purchase_price,
+                product.date_bought,
+                product.seller_name_address
+            ))
+
+            self.conn.commit()
+            return None
+
+        except sqlite3.IntegrityError as e:
+            return f"Integrity error: {str(e)}"
+        except Exception as e:
+            return str(e)
     
+    def modify_product(self, product: Product) -> Optional[str]:
+        try:
+            self.cursor.execute("""
+                UPDATE products
+                SET
+                    im_sku = ?,
+                    description = ?,
+                    quantity = ?,
+                    selling_price = ?,
+                    purchase_price = ?,
+                    date_purchased = ?,
+                    "name/address_seller" = ?
+                WHERE sku_no = ?
+            """, (
+                product.im_sku,
+                product.item_description,
+                product.quantity,
+                product.selling_price,
+                product.purchase_price,
+                product.date_bought,
+                product.seller_name_address,
+                product.sku_no.strip()
+            ))
+
+            if self.cursor.rowcount == 0:
+                return "Product not found"
+
+            self.conn.commit()
+            return None
+
+        except Exception as e:
+            return str(e)
+    
+    def add_sold_product(self, printRequest: PrintRequest) -> Optional[str]:
+        try:
+            
+            # If not marking as sold, do nothing DB-related
+            if not printRequest.mark_as_sold:
+                return None
+
+            self.conn.execute("BEGIN")
+
+            customer_id = None
+
+            # 1. Handle customer
+            if printRequest.customer_name:
+                self.cursor.execute(
+                    "INSERT OR IGNORE INTO customers (name, email) VALUES (?, ?)",
+                    (printRequest.customer_name, printRequest.email_address)
+                )
+
+                self.cursor.execute(
+                    "SELECT customer_id FROM customers WHERE name = ?",
+                    (printRequest.customer_name,)
+                )
+
+                row = self.cursor.fetchone()
+                if row:
+                    customer_id = row["customer_id"]
+
+            # 2. Calculate total and getting quantity of old product
+            total_amount = 0
+            product_rows = []
+
+            for item in printRequest.products:
+                self.cursor.execute(
+                    "SELECT product_id, quantity, selling_price FROM products WHERE sku_no = ?",
+                    (item.sku_no,)
+                )
+
+                row = self.cursor.fetchone()
+
+                if not row:
+                    self.conn.rollback()
+                    return f"SKU not found: {item.sku_no}"
+
+                product_id = row["product_id"]
+                current_qty = row["quantity"]
+                selling_price = row["selling_price"]
+
+                # Default quantity = 1 if not provided
+                qty_to_sell = item.quantity if item.quantity is not None else 1
+
+                total_amount += selling_price * qty_to_sell
+
+                print(f"DEBUG → SKU: {item.sku_no}, item.quantity: {item.quantity}, qty_to_sell: {qty_to_sell}")
+                product_rows.append((product_id, current_qty, qty_to_sell))
+
+            # 3. Create order
+            self.cursor.execute("""
+                INSERT INTO orders (customer_id, date_sold, invoice_no, total_amount)
+                VALUES (?, ?, ?, ?)
+            """, (
+                customer_id,
+                printRequest.date_sold,
+                None,  # No invoice_no in PrintRequest
+                total_amount
+            ))
+
+            order_id = self.cursor.lastrowid
+
+            # 4. Insert sold_products + update stock
+            for product_id, current_qty, qty_to_sell in product_rows:
+
+                self.cursor.execute("""
+                    INSERT INTO sold_products (order_id, product_id, quantity)
+                    VALUES (?, ?, ?)
+                """, (order_id, product_id, qty_to_sell))
+
+                # Update quantity in products table
+                new_qty = max(0, current_qty - qty_to_sell)
+
+                self.cursor.execute("""
+                    UPDATE products
+                    SET quantity = ?
+                    WHERE product_id = ?
+                """, (new_qty, product_id))
+
+            self.conn.commit()
+            return order_id
+
+        except Exception as e:
+            self.conn.rollback()
+            return str(e)
+
