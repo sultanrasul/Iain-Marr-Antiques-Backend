@@ -1,8 +1,10 @@
 from schemas.getSalesRequest import GetSalesRequest
+from schemas.getStockRequest import GetStockRequest
 from schemas.product import Product
 from utils.exceptions import NotFoundError
 
 from services.integrations.sheets_service import SheetsService
+from utils.timing import timeit
 sheets_service = SheetsService()
 
 from services.integrations.printer_service import PrinterIntegration
@@ -14,12 +16,13 @@ databaseService = DatabaseService("database.sqlite")
 
 class StockService:
     @staticmethod
-    def get_stock():
+    @timeit
+    def get_stock(request: GetStockRequest):
         """
         Return all stock items from database
         """
         # return sheets_service.get_stock()
-        return { "products": databaseService.get_stock(), "printer_connected": printerService.connect() }
+        return { "products": databaseService.get_stock(request), "printer_connected": printerService.connect() }
     
     @staticmethod
     def get_sales(request: GetSalesRequest):

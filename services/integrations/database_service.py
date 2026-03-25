@@ -10,6 +10,7 @@ import sqlite3
 from collections import defaultdict
 
 from schemas.getSalesRequest import GetSalesRequest
+from schemas.getStockRequest import GetStockRequest
 from schemas.printRequest import PrintRequest
 from schemas.product import Product
 from schemas.soldProduct import SoldProduct
@@ -220,21 +221,44 @@ class DatabaseService:
         return errors
 
 
-    def get_stock(self) -> List[Product]:
-        self.cursor.execute(
+    def get_stock(self, request: GetStockRequest):
+        # Map frontend sort fields to actual DB columns
+        sort_mapping = {
+            "sku_no": "product_id",  # sort by product_id when frontend says sku_no
+            "im_sku": "im_sku",
+            "description": "description",
+            "quantity": "quantity",
+            "selling_price": "selling_price",
+            "purchase_price": "purchase_price"
+        }
+
+        # Determine the column to sort by
+        sort_field = sort_mapping.get(request.sort_field, "description")  # default: description
+        sort_order = request.sort_order if request.sort_order in ["asc", "desc"] else "asc"
+
+        query = f"""
+            SELECT *,
+                CASE WHEN quantity = 0 THEN 1 ELSE 0 END AS sold
+            FROM products
+            WHERE (:sku_text IS NULL OR sku_no LIKE :sku_text OR im_sku LIKE :sku_text)
+            AND (:description IS NULL OR description LIKE :description)
+            AND (:min_selling_price IS NULL OR selling_price >= :min_selling_price)
+            AND (:min_purchase_price IS NULL OR purchase_price >= :min_purchase_price)
+            ORDER BY {sort_field} {sort_order}
         """
-            SELECT 
-                *,
-                CASE 
-                    WHEN quantity = 0 THEN 1
-                    ELSE 0
-                END AS sold
-            FROM products;
-        """)
+
+        params = {
+            "sku_text": f"%{request.sku_text}%" if request.sku_text else None,
+            "description": f"%{request.description}%" if request.description else None,
+            "min_selling_price": request.min_selling_price,
+            "min_purchase_price": request.min_purchase_price
+        }
+
+        self.cursor.execute(query, params)
         rows = self.cursor.fetchall()
 
         return [Product.from_db_row(dict(row)) for row in rows]
-    
+        
     def get_sales(self, request: GetSalesRequest):
         query = """
             SELECT 
@@ -331,7 +355,7 @@ class DatabaseService:
             return f"Integrity error: {str(e)}"
         except Exception as e:
             return str(e)
-    
+    @timeit
     def modify_product(self, product: Product) -> Optional[str]:
         try:
             self.cursor.execute("""
@@ -417,7 +441,6 @@ class DatabaseService:
 
                 total_amount += selling_price * qty_to_sell
 
-                print(f"DEBUG → SKU: {item.sku_no}, item.quantity: {item.quantity}, qty_to_sell: {qty_to_sell}")
                 product_rows.append((product_id, current_qty, qty_to_sell))
 
             # 3. Create order

@@ -2,17 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
 
+from schemas.getStockRequest import GetStockRequest
 from schemas.getSalesRequest import GetSalesRequest
 from schemas.product import Product
 from services.stock import StockService
+from utils.timing import timeit
 
 router = APIRouter(prefix="/stock", tags=["stock"])
 
 @router.get("/get-stock")
-async def get_stock():
+@timeit
+async def get_stock(request: GetStockRequest = Depends()):
     """Get Stock"""
 
-    return StockService.get_stock()
+    return StockService.get_stock(request)
 
 @router.get("/get-sales")
 async def get_sales(request: GetSalesRequest = Depends()):

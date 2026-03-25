@@ -22,16 +22,16 @@ class SalesService:
     def checkout(request: PrintRequest):
         order_id: str = None
 
+        # Check if printer is connected
+        if request.copies !=0 and printer.connect() == False:
+            raise http_exception_handler(exc=PrinterNotConnected())
+
         if request.mark_as_sold:
             # Add sale to Google Sheets
             sheetsService.mark_as_sold(request)
 
             # Add sale to Database
             order_id = databaseService.add_sold_product(request)
-
-        # Check if printer is connected
-        if request.copies !=0 and printer.connect() == False:
-            raise http_exception_handler(exc=PrinterNotConnected())
 
         # Print the receipt(s)
         for _ in range (request.copies):
