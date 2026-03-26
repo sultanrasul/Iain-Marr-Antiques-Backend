@@ -236,7 +236,7 @@ class SheetsService:
         date_sold_index = headers.index("DATE SOLD")
 
         # 3. Get all rows
-        rows = sheet.get_all_values()[1:]  # skip header
+        rows = sheet.get_all_values(value_render_option="UNFORMATTED_VALUE")[1:]
 
         updates = []
 
@@ -247,8 +247,13 @@ class SheetsService:
             # Ensure row is long enough
             if len(row) <= date_sold_index:
                 continue
+    
+            raw_value = row[date_sold_index]
 
-            current_time = row[date_sold_index].strip()
+            if not raw_value:
+                continue
+
+            current_time = SoldProduct.gs_to_datetime(raw_value)
 
             if not current_time:
                 continue

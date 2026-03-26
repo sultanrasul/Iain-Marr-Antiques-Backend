@@ -1,6 +1,6 @@
 from typing import ClassVar, Optional
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from schemas.product import Product
 
@@ -81,3 +81,7 @@ class SoldProduct(Product):
             "SOLD": True,
         }
         return [mapping.get(h, "") for h in self.SHEET_HEADERS]
+    
+    @classmethod
+    def gs_to_datetime(cls, value):
+        return datetime(1899, 12, 30) + timedelta(days=float(value))
