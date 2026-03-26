@@ -7,10 +7,12 @@ from schemas.product import Product
 class SoldProduct(Product):
     customer_name: Optional[str] = Field(None, example="Marion Morrison-Boyd")
     total_price: float = Field(0.0, example=1350.0)
+    order_id: Optional[int] = Field(None, example=1)
 
     SHEET_HEADERS: ClassVar[list[str]] = [
         "SKU NO.",
         "IM SKU",
+        "ORDER ID",  # ✅ inserted here (between IM SKU and Customers Name)
         "Customers Name",
         "ITEM DESCRIPTION",
         "SELLING PRICE",
@@ -62,6 +64,7 @@ class SoldProduct(Product):
         mapping = {
             "SKU NO.": self.sku_no,
             "IM SKU": self.im_sku,
+            "ORDER ID": self.order_id,  # ✅ included
             "Customers Name": self.customer_name,
             "ITEM DESCRIPTION": self.item_description,
             "SELLING PRICE": self.selling_price,

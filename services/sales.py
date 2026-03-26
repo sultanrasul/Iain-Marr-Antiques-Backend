@@ -21,6 +21,9 @@ class SalesService:
         if request.copies !=0 and printer.connect() == False:
             raise http_exception_handler(exc=PrinterNotConnected())
 
+        if request.mark_as_sold:
+            sheetsService.mark_as_sold(request)
+
         # Print the receipt(s)
         for _ in range (request.copies):
             SalesService.print_receipt(request)
@@ -28,9 +31,6 @@ class SalesService:
         # Send Email
         if request.email_address:
             emailService.send_email(request)
-            
-        if request.mark_as_sold:
-            sheetsService.mark_as_sold(request)
 
         
         return { "success": True, "sold_count": len(request.products) if request.mark_as_sold else 0, "printed_count": len(request.products)}

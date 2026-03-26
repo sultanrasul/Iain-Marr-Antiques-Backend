@@ -102,28 +102,46 @@ class SheetsService:
     
     def mark_as_sold(self, request: PrintRequest):
         all_records = self.items.get_all_records()
-        # date_sold = datetime.now().strftime("%-d.%-m.%y %H:%M")
-        date_sold = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # SQLite format
-        
 
+        # ✅ STEP 1: Get last order info from sold sheet
+        sold_rows = self.sold_items.get_all_records()
+
+        next_order_id = 1
+
+        if sold_rows:
+            last_row = sold_rows[-1]
+
+            last_order_id = last_row.get("ORDER ID")
+            last_date_sold = last_row.get("DATE SOLD")
+
+            try:
+                last_order_id = int(last_order_id) if last_order_id else None
+            except ValueError:
+                last_order_id = None
+
+            if last_order_id:
+                if last_date_sold == request.date_sold:
+                    next_order_id = last_order_id  # same order
+                else:
+                    next_order_id = last_order_id + 1
+
+        # ✅ STEP 2: Process products
         for product in request.products:
 
             row_index = None
             record_row = None
 
             # Find row in Items
-            for i, record in enumerate(all_records, start=2):  # start=2 because header is row 1
+            for i, record in enumerate(all_records, start=2):
                 if str(record.get("SKU NO.")).strip() == product.sku_no:
                     row_index = i
                     record_row = record
                     break
-            
+
             if not row_index or not record_row:
-                continue  # skip if SKU not found
+                continue
 
-            quantity_sold = product.quantity               # the number being sold
-
-            # If the Quantity Row is empty set it to 1
+            quantity_sold = product.quantity
             sheet_quantity = int(record_row.get("Quantity") or 1)
             remaining_quantity = max(0, sheet_quantity - quantity_sold)
 
@@ -132,15 +150,22 @@ class SheetsService:
 
             self.update_product(product)
 
-            # Done through "Conditional Formatting" in Google Sheets
-            # if product.sold:
-            #     self.mark_row_sold_red(row_index)
+            # ✅ CREATE SOLD PRODUCT WITH ORDER ID
+            soldProduct: SoldProduct = SoldProduct.from_product(
+                product=product,
+                customer_name=request.customer_name,
+                quantity=quantity_sold,
+                date_sold=request.date_sold,
+                total_price=quantity_sold * product.selling_price,
+            )
 
-            soldProduct: SoldProduct = SoldProduct.from_product(product=product, customer_name=request.customer_name,quantity=quantity_sold,date_sold=date_sold,total_price=quantity_sold*product.selling_price)
+            # 🔥 Assign order_id here
+            soldProduct.order_id = next_order_id
+
             self.add_sold_product(soldProduct)
-        
+
         return True
-    
+
     def convert_old_date_format(self):
         sold_products = self.get_sold_items()
         headers = self.sold_items.row_values(1)
@@ -177,3 +202,73 @@ class SheetsService:
             ]
             self.sold_items.batch_update(data)
 
+    def add_order_ids(self):
+        sheet = self.sold_items
+
+        # 1. Get headers
+        headers = sheet.row_values(1)
+
+        order_id_col_name = "ORDER ID"
+
+        # 2. Ensure column exists in correct position
+        if order_id_col_name not in headers:
+            try:
+                im_sku_index = headers.index("IM SKU")
+            except ValueError:
+                raise Exception("IM SKU column not found")
+
+            insert_position = im_sku_index + 2  # +1 for next col, +1 because gspread is 1-based
+
+            sheet.add_cols(1)
+
+            # Shift columns right by inserting at position
+            sheet.insert_cols(
+                [[]],  # empty column
+                col=insert_position
+            )
+
+            sheet.update_cell(1, insert_position, order_id_col_name)
+
+            # Refresh headers
+            headers = sheet.row_values(1)
+
+        order_id_index = headers.index(order_id_col_name)
+        date_sold_index = headers.index("DATE SOLD")
+
+        # 3. Get all rows
+        rows = sheet.get_all_values()[1:]  # skip header
+
+        updates = []
+
+        current_order_id = 1
+        previous_time = None
+
+        for i, row in enumerate(rows, start=2):  # start=2 because header is row 1
+            # Ensure row is long enough
+            if len(row) <= date_sold_index:
+                continue
+
+            current_time = row[date_sold_index].strip()
+
+            if not current_time:
+                continue
+
+            # Compare with previous row time
+            if previous_time is None:
+                # first valid row
+                pass
+            elif current_time != previous_time:
+                current_order_id += 1
+
+            previous_time = current_time
+
+            # Set ORDER ID value
+            cell_ref = gspread.utils.rowcol_to_a1(i, order_id_index + 1)
+            updates.append({
+                "range": cell_ref,
+                "values": [[current_order_id]]
+            })
+
+        # 4. Batch update
+        if updates:
+            sheet.batch_update(updates)

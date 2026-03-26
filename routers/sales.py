@@ -12,5 +12,5 @@ router = APIRouter(prefix="/sales", tags=["sales"])
 async def print_request(request: PrintRequest):
     """Print Request"""
     
-
+    request.date_sold = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # SQLite format
     return salesService.checkout(request)
