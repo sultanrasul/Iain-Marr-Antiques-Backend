@@ -3,15 +3,13 @@ from schemas.getStockRequest import GetStockRequest
 from schemas.product import Product
 from utils.exceptions import NotFoundError
 
-from services.integrations.sheets_service import SheetsService
 from utils.timing import timeit
-sheetsService = SheetsService()
 
-from services.integrations.printer_service import PrinterIntegration
-printerService = PrinterIntegration()
+from services.integrations.integrations import get_sheets_service, get_database_service, get_printer_service
 
-from services.integrations.database_service import DatabaseService
-databaseService = DatabaseService("database.sqlite")
+databaseService = get_database_service()
+sheetsService = get_sheets_service()
+printerService = get_printer_service()
 
 
 class StockService:

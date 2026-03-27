@@ -5,8 +5,8 @@ from datetime import datetime
 from services.system import SystemService
 systemService = SystemService()
 
-from services.integrations.printer_service import PrinterIntegration
-printerIntegration = PrinterIntegration()
+from services.integrations.integrations import get_printer_service
+printerIntegration = get_printer_service()
 
 router = APIRouter(prefix="/system", tags=["system"])
 

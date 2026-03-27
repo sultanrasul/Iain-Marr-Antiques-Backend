@@ -91,22 +91,25 @@ class SheetsService:
 
     @timeit
     def get_sold_items(self) -> List[SoldProduct]:
-        rows = self.sold_items.get_all_records(
+        # 1. Get formatted values (default)
+        formatted_rows = self.sold_items.get_all_records()
+
+        # 2. Get unformatted values
+        raw_rows = self.sold_items.get_all_records(
             value_render_option="UNFORMATTED_VALUE"
         )
 
-        for row in rows:
-            raw_value = row.get("DATE SOLD")
+        # 3. Merge DATE SOLD only
+        for f_row, r_row in zip(formatted_rows, raw_rows):
+            raw_date = r_row.get("DATE SOLD")
 
-            if isinstance(raw_value, (int, float)):
-                # Convert Google Sheets serial → real datetime
-                real_date = datetime(1899, 12, 30) + timedelta(days=raw_value)
-
-                row["DATE SOLD"] = real_date.strftime("%Y-%m-%d %H:%M:%S")  # SQLite format
+            if isinstance(raw_date, (int, float)):
+                real_date = datetime(1899, 12, 30) + timedelta(days=raw_date)
+                f_row["DATE SOLD"] = real_date.strftime("%Y-%m-%d %H:%M:%S")
 
         return [
             SoldProduct.from_sheet_row({**row, "row_number": i + 2})
-            for i, row in enumerate(rows)
+            for i, row in enumerate(formatted_rows)
         ]
     
     def add_sold_product(self, product: SoldProduct):

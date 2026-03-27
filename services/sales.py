@@ -5,17 +5,15 @@ from schemas.printRequest import PrintRequest
 from schemas.soldProduct import SoldProduct
 from utils.exceptions import PrinterNotConnected, http_exception_handler
 
-from services.integrations.printer_service import PrinterIntegration
-printer = PrinterIntegration()
 
-from services.integrations.email_service import EmailService
-emailService = EmailService()
+from services.integrations.integrations import get_sheets_service, get_database_service, get_email_service, get_printer_service
+databaseService = get_database_service()
 
-from services.integrations.sheets_service import SheetsService
-sheetsService = SheetsService()
+sheetsService = get_sheets_service()
 
-from services.integrations.database_service import DatabaseService
-databaseService = DatabaseService()
+emailService = get_email_service()
+
+printer = get_printer_service()
 
 class SalesService:
     @staticmethod

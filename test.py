@@ -1,7 +1,7 @@
 import csv
 
-from services.integrations.sheets_service import SheetsService
-sheetsService = SheetsService()
+from services.integrations.integrations import get_sheets_service
+sheetsService = get_sheets_service()
 
 from services.integrations.database_service import DatabaseService
 databaseService = DatabaseService("database.sqlite")
@@ -22,8 +22,9 @@ print(errors)
 print()
 
 sold_products = sheetsService.get_sold_items()
-print(F"ORDER ID: {sold_products[3].order_id}")
 errors = databaseService.import_sold_products_to_db(sold_products=sold_products)
 print(errors)
+
+print(F"ORDER ID: {sold_products[3].date_sold}")
 
 databaseService.conn.close()

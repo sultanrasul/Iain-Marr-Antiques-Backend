@@ -265,7 +265,7 @@ class DatabaseService:
                 o.total_amount,
                 COALESCE(SUM(sp.quantity), 0) AS items_purchased
             FROM orders o
-            INNER JOIN customers c
+            LEFT JOIN customers c
                 ON o.customer_id = c.customer_id
             LEFT JOIN sold_products sp
                 ON sp.order_id = o.order_id
