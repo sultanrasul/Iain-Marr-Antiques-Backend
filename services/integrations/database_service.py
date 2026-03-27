@@ -80,7 +80,7 @@ class DatabaseService:
             )
         """)
         self.conn.commit()
-        
+    @timeit
     def import_products_to_db(self, products: List[Product]) -> List[Tuple[int, str]]:
         """
         Import Product instances into the existing `products` table.
@@ -130,39 +130,36 @@ class DatabaseService:
         self.conn.commit()
         return errors
 
-
+    @timeit
     def import_sold_products_to_db(self, sold_products: List[SoldProduct]) -> List[Tuple[int, str]]:
         errors: List[Tuple[int, str]] = []
 
-        # Reset sold data
+        # Reset tables (safe because we now trust sheet order_id)
         self.cursor.execute("DELETE FROM sold_products")
         self.cursor.execute("DELETE FROM orders")
 
-        # Reset stock (restore original quantities)
-        self.cursor.execute("""
-            UPDATE products
-            SET quantity = quantity
-        """)
+        grouped_sales: Dict[int, List[SoldProduct]] = defaultdict(list)
 
-        grouped_sales: Dict[Tuple[str, str, str], List[SoldProduct]] = defaultdict(list)
-
-        # Group rows into orders
+        # Group rows by ORDER ID from sheet
         for sold in sold_products:
+
+            if not sold.order_id:
+                errors.append((sold.row_number, "Missing order_id"))
+                continue
 
             if not sold.date_sold:
                 errors.append((sold.row_number, "Missing date_sold"))
                 continue
 
-            key = (
-                sold.date_sold,
-                sold.customer_name or "",
-                sold.invoice_no_xero or ""
-            )
-
-            grouped_sales[key].append(sold)
+            grouped_sales[sold.order_id].append(sold)
 
         # Create orders
-        for (date_sold, customer_name, invoice_no), products in grouped_sales.items():
+        for sheet_order_id, products in grouped_sales.items():
+
+            first = products[0]
+            date_sold = first.date_sold
+            customer_name = first.customer_name
+            invoice_no = first.invoice_no_xero
 
             customer_id = None
 
@@ -177,16 +174,17 @@ class DatabaseService:
                     (customer_name,)
                 )
 
-                customer_id = self.cursor.fetchone()[0]
+                result = self.cursor.fetchone()
+                if result:
+                    customer_id = result[0]
 
             total_amount = sum(p.selling_price * p.quantity for p in products)
 
+            # ✅ Use ORDER ID from sheet (NOT lastrowid)
             self.cursor.execute("""
-                INSERT INTO orders (customer_id, date_sold, invoice_no, total_amount)
-                VALUES (?, ?, ?, ?)
-            """, (customer_id, date_sold, invoice_no, total_amount))
-
-            order_id = self.cursor.lastrowid
+                INSERT OR REPLACE INTO orders (order_id, customer_id, date_sold, invoice_no, total_amount)
+                VALUES (?, ?, ?, ?, ?)
+            """, (sheet_order_id, customer_id, date_sold, invoice_no, total_amount))
 
             # Insert order items
             for sold in products:
@@ -206,7 +204,7 @@ class DatabaseService:
                 self.cursor.execute("""
                     INSERT INTO sold_products (order_id, product_id, quantity)
                     VALUES (?, ?, ?)
-                """, (order_id, product_id, sold.quantity))
+                """, (sheet_order_id, product_id, sold.quantity))
 
                 new_qty = max(current_qty - sold.quantity, 0)
 
@@ -219,7 +217,6 @@ class DatabaseService:
         self.conn.commit()
 
         return errors
-
 
     def get_stock(self, request: GetStockRequest):
         # Map frontend sort fields to actual DB columns

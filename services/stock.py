@@ -5,7 +5,7 @@ from utils.exceptions import NotFoundError
 
 from services.integrations.sheets_service import SheetsService
 from utils.timing import timeit
-sheets_service = SheetsService()
+sheetsService = SheetsService()
 
 from services.integrations.printer_service import PrinterIntegration
 printerService = PrinterIntegration()
@@ -39,7 +39,7 @@ class StockService:
         Add a new product to stock
         """
 
-        sheets_new_product = sheets_service.add_product(product)
+        sheets_new_product = sheetsService.add_product(product)
         databaseService.add_product(product)
 
         return sheets_new_product
@@ -50,7 +50,7 @@ class StockService:
         Modify an existing product by SKU
         """
 
-        updated = sheets_service.update_product(product)
+        updated = sheetsService.update_product(product)
 
         if not updated:
             raise NotFoundError(f"Product with SKU {product.sku_no} not found")
