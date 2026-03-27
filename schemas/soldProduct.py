@@ -35,9 +35,21 @@ class SoldProduct(Product):
         Build SoldProduct from a sheet row (dict). Includes customer_name.
         """
         product = Product.from_sheet_row(row)
+
+        raw_order_id = row.get("ORDER ID")
+
+        # ✅ Clean + convert safely
+        order_id = None
+        if raw_order_id not in (None, ""):
+            try:
+                order_id = int(float(raw_order_id))  # handles "123", 123, 123.0
+            except ValueError:
+                order_id = None  # or log error if you want strict validation
+
         return cls(
-            **product.model_dump(),  # copy all Product fields
-            customer_name=row.get("Customers Name")
+            **product.model_dump(),
+            customer_name=row.get("Customers Name"),
+            order_id=order_id,
         )
 
     @classmethod
