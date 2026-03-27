@@ -50,7 +50,7 @@ HAVING
     (:min_items IS NULL OR COALESCE(SUM(sp.quantity), 0) >= :min_items)
     AND (:min_price IS NULL OR o.total_amount >= :min_price)
 ORDER BY
-    o.date_sold DESC, o.order_id;
+    o.date_sold ASC, o.order_id;
 
 -- Get a list of products by order id
 SELECT 

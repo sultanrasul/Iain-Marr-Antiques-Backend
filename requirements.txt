@@ -15,12 +15,17 @@ fastapi-cloud-cli==0.11.0
 fastar==0.8.0
 Flask==3.1.1
 flask-cors==6.0.1
+google-api-core==2.30.0
+google-api-python-client==2.193.0
 google-auth==2.40.3
+google-auth-httplib2==0.3.0
 google-auth-oauthlib==1.2.2
+googleapis-common-protos==1.73.1
 gspread==6.2.1
 gspread-formatting==1.2.1
 h11==0.16.0
 httpcore==1.0.9
+httplib2==0.31.2
 httptools==0.7.1
 httpx==0.28.1
 idna==3.10
@@ -32,6 +37,8 @@ markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
 oauthlib==3.3.1
+proto-plus==1.27.2
+protobuf==6.33.6
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pydantic==2.12.5
@@ -39,6 +46,7 @@ pydantic-extra-types==2.11.0
 pydantic-settings==2.11.0
 pydantic_core==2.41.5
 Pygments==2.19.2
+pyparsing==3.3.2
 python-dotenv==1.1.1
 python-multipart==0.0.20
 pyusb==1.2.1
@@ -56,6 +64,7 @@ tomli==2.4.0
 typer==0.21.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
+uritemplate==4.2.0
 urllib3==2.5.0
 uvicorn==0.39.0
 uvloop==0.22.1
