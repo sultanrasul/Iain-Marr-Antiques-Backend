@@ -24,8 +24,7 @@ class Settings(BaseSettings):
         default_dynamic = {
             "api_v1_prefix": self.api_v1_prefix,
             "GOOGLE_SHEETS_ID": self.GOOGLE_SHEETS_ID,
-            "DATABASE_PATH": self.DATABASE_PATH,
-            "ENV": self.ENV
+            "DATABASE_PATH": self.DATABASE_PATH
         }
 
         if os.path.exists(CONFIG_FILE):
@@ -38,7 +37,7 @@ class Settings(BaseSettings):
                 json.dump(default_dynamic, f, indent=4)
 
     def save_dynamic(self):
-        dynamic_keys = ["api_v1_prefix", "GOOGLE_SHEETS_ID", "DATABASE_PATH", "ENV"]
+        dynamic_keys = ["api_v1_prefix", "GOOGLE_SHEETS_ID", "DATABASE_PATH",]
         data = {key: getattr(self, key) for key in dynamic_keys}
         with open(CONFIG_FILE, "w") as f:
             json.dump(data, f, indent=4)

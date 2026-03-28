@@ -9,7 +9,6 @@ import os
 systemService = SystemService()
 
 from services.integrations.integrations import get_printer_service
-printerIntegration = get_printer_service()
 
 router = APIRouter(prefix="/system", tags=["system"])
 
@@ -32,6 +31,7 @@ async def shutdown_system():
 @router.get("/reconnect-printer")
 async def reconnect_printer():
     """Reconnect the printer to the Raspberry Pi"""
+    printerIntegration = get_printer_service()
     return printerIntegration.connect()
 
 # ---------------- New endpoints ---------------- #

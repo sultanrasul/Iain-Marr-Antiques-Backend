@@ -21,8 +21,7 @@ class DatabaseService:
         """
         Initialize the database service with a connection path.
         """
-        self.db_path = db_path
-
+        self.db_path = settings.DATABASE_PATH
         
         # Ensure the products table exists on init
         self.conn = sqlite3.connect(self.db_path)

@@ -7,17 +7,20 @@ from utils.exceptions import PrinterNotConnected, http_exception_handler
 
 
 from services.integrations.integrations import get_sheets_service, get_database_service, get_email_service, get_printer_service
-databaseService = get_database_service()
-
-sheetsService = get_sheets_service()
-
-emailService = get_email_service()
-
-printer = get_printer_service()
+# databaseService = get_database_service()
+# sheetsService = get_sheets_service()
+# emailService = get_email_service()
+# printer = get_printer_service()
 
 class SalesService:
     @staticmethod
     def checkout(request: PrintRequest):
+        databaseService = get_database_service()
+        sheetsService = get_sheets_service()
+        emailService = get_email_service()
+        printer = get_printer_service()
+
+
         order_id: str = None
 
         # Check if printer is connected
@@ -43,7 +46,7 @@ class SalesService:
 
     @staticmethod
     def print_receipt(request: PrintRequest, order_id: str):
-
+        printer = get_printer_service() 
         printer.ensure_connected()
 
         printer.print_header_image( printer_name="Star_TSP800_", image_path="/home/sultanrasul/backend-fastapi/header.jpeg")
