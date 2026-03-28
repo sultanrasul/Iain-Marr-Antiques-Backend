@@ -257,7 +257,19 @@ class DatabaseService:
         return [Product.from_db_row(dict(row)) for row in rows]
         
     def get_sales(self, request: GetSalesRequest):
-        query = """
+        
+        SORT_FIELD_MAP = {
+            "order_id": "o.order_id",
+            "customer_name": "c.name",
+            "date_sold": "o.date_sold",
+            "total_amount": "o.total_amount",
+            "items_purchased": "items_purchased"  # alias from SELECT
+        }
+
+        sort_field = SORT_FIELD_MAP.get(request.sort_field, "o.order_id")
+        sort_order = request.sort_order or "asc"
+
+        query = f"""
             SELECT 
                 o.order_id,
                 c.name AS customer_name,
@@ -281,7 +293,7 @@ class DatabaseService:
             HAVING
                 (:min_items IS NULL OR COALESCE(SUM(sp.quantity), 0) >= :min_items)
                 AND (:min_price IS NULL OR o.total_amount >= :min_price)
-            ORDER BY o.date_sold DESC, o.order_id;
+            ORDER BY {sort_field} {sort_order}
         """
 
         params = {
@@ -434,7 +446,7 @@ class DatabaseService:
                 selling_price = row["selling_price"]
 
                 # Default quantity = 1 if not provided
-                qty_to_sell = item.quantity if item.quantity is not None else 1
+                qty_to_sell = max(1,item.quantity if item.quantity is not None else 1)
 
                 total_amount += selling_price * qty_to_sell
 
@@ -477,3 +489,18 @@ class DatabaseService:
             self.conn.rollback()
             return str(e)
 
+    def get_table_stats(self):
+        query = """
+            SELECT
+                (SELECT COUNT(*) FROM products) AS total_products,
+                (SELECT COUNT(*) FROM orders) AS total_orders,
+                (SELECT COUNT(*) FROM sold_products) AS total_sales_rows,
+                (SELECT COALESCE(SUM(quantity), 0) FROM sold_products) AS total_items_sold,
+                (SELECT COALESCE(SUM(total_amount), 0) FROM orders) AS total_revenue,
+                (SELECT COUNT(DISTINCT product_id) FROM sold_products) AS unique_products_sold
+        """
+
+        self.cursor.execute(query)
+        row = self.cursor.fetchone()
+
+        return dict(row)

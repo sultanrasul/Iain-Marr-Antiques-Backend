@@ -20,7 +20,7 @@ class StockService:
         Return all stock items from database
         """
         # return sheets_service.get_stock()
-        return { "products": databaseService.get_stock(request), "printer_connected": printerService.connect() }
+        return { "products": databaseService.get_stock(request), "printer_connected": printerService.connect(), "stats": databaseService.get_table_stats() }
     
     @staticmethod
     def get_sales(request: GetSalesRequest):
