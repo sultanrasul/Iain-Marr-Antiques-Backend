@@ -16,6 +16,9 @@ class GetSalesRequest(BaseModel):
     customer_name: Optional[str] = Field(default="", example="Sultan Rasul")
     email_address: Optional[str] = Field(default="", example="example@email.com")
 
+    page: Optional[int] = Field(None, example=1, description="Which page you want to fetch")
+    items_per_page: Optional[int] = Field(None, example=50, description="How many items per page")
+
 
     # --- Sorting parameters ---
     sort_field: Optional[Literal[

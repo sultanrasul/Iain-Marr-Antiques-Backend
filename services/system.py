@@ -29,9 +29,10 @@ class SystemService:
             return {"success": False, "error": str(e)}, 500
 
     @staticmethod
-    def sync_database():
+    def import_google_sheets_data():
         databaseService = get_database_service()
         sheetsService = get_sheets_service()
+        
         # Import products
         products = sheetsService.get_stock()
         product_errors = databaseService.import_products_to_db(products=products)
@@ -41,6 +42,15 @@ class SystemService:
         sold_product_errors = databaseService.import_sold_products_to_db(sold_products=sold_products)
         
         return [product_errors, sold_product_errors]
+    
+    @staticmethod
+    def sync_data_to_google_sheets():
+        ss = get_sheets_service()
+        db = get_database_service()
+        sync_products = ss.sync_products_to_google_sheets(db)
+        sync_sold_products = ss.sync_sold_to_google_sheets(db)
+
+        return sync_products
 
     @staticmethod
     def update_google_sheets_id(new_id: str):

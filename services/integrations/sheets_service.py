@@ -10,6 +10,7 @@ from gspread_formatting import *
 from schemas.printRequest import PrintRequest
 from schemas.product import Product
 from schemas.soldProduct import SoldProduct
+from services.integrations.database_service import DatabaseService
 from utils.timing import timeit
 import copy
 
@@ -317,4 +318,149 @@ class SheetsService:
         if updates:
             sheet.batch_update(updates)
 
+    @timeit
+    def sync_products_to_google_sheets(self, database_service: DatabaseService) -> Optional[str]:
+        try:
+            # --- 1. Fetch DB data ---
+            database_service.cursor.execute("""
+                SELECT 
+                    sku_no,
+                    im_sku,
+                    description,
+                    quantity,
+                    selling_price,
+                    purchase_price,
+                    date_purchased,
+                    "name/address_seller"
+                FROM products
+            """)
+            db_rows = database_service.cursor.fetchall()
+
+            # --- 2. Read sheet ---
+            headers = self.items.row_values(1)
+            sheet_records = self.items.get_all_records()
+
+            # Map SKU → (row_index, row_data)
+            sheet_map = {}
+            for i, row in enumerate(sheet_records, start=2):
+                sku = str(row.get("SKU NO.", "")).strip()
+                if sku:
+                    sheet_map[sku] = (i, row)
+
+            updates = []
+            new_rows = []
+
+            # --- 3. Process DB rows ---
+            for db_row in db_rows:
+                product = Product.from_db_row(dict(db_row))
+                sku = product.sku_no.strip()
+
+                new_row = product.to_sheet_row()
+
+                if sku in sheet_map:
+                    # ✅ UPDATE EXISTING
+                    row_index, existing_row = sheet_map[sku]
+
+                    existing_values = [
+                        existing_row.get(header, "")
+                        for header in headers
+                    ]
+
+                    merged_row = []
+                    for new_val, old_val in zip(new_row, existing_values):
+                        if new_val in (None, ""):
+                            merged_row.append(old_val)
+                        else:
+                            merged_row.append(new_val)
+
+                    row_range = f"A{row_index}:{chr(64 + len(headers))}{row_index}"
+
+                    updates.append({
+                        "range": row_range,
+                        "values": [merged_row]
+                    })
+
+                else:
+                    # ✅ ADD NEW PRODUCT
+                    new_rows.append(new_row)
+
+            # --- 4. Execute updates ---
+            if updates:
+                self.items.batch_update(updates)
+
+            if new_rows:
+                self.items.append_rows(
+                    new_rows,
+                    value_input_option="USER_ENTERED"
+                )
+
+            return None
+
+        except Exception as e:
+            return str(e)
         
+    @timeit
+    def sync_sold_to_google_sheets(self, database_service: DatabaseService) -> Optional[str]:
+        """
+        Sync sold_products table to the sold_items Google Sheet.
+        """
+        try:
+            # --- 1. Fetch sold products joined with orders + customers ---
+            database_service.cursor.execute("""
+                SELECT 
+                    sp.sold_product_id, sp.order_id, sp.product_id, sp.quantity,
+                    o.date_sold, o.invoice_no, o.customer_id,
+                    c.name AS customer_name,
+                    p.sku_no, p.im_sku, p.description, p.selling_price, p.purchase_price, p.date_purchased, p."name/address_seller",
+                    (sp.quantity * p.selling_price) AS total_price
+                FROM sold_products sp
+                LEFT JOIN orders o ON sp.order_id = o.order_id
+                LEFT JOIN customers c ON o.customer_id = c.customer_id
+                LEFT JOIN products p ON sp.product_id = p.product_id
+            """)
+            db_rows = database_service.cursor.fetchall()
+
+            # --- 2. Read Google Sheet ---
+            headers = self.sold_items.row_values(1)
+            sheet_records = self.sold_items.get_all_records()
+
+            # Map SKU + Order ID → (row_index, row_data)
+            sheet_map = {}
+            for i, row in enumerate(sheet_records, start=2):
+                sku = str(row.get("SKU NO.", "")).strip()
+                order_id = row.get("ORDER ID")
+                if sku:
+                    sheet_map[(sku, order_id)] = (i, row)
+
+            updates = []
+            new_rows = []
+
+            # --- 3. Process DB rows ---
+            for db_row in db_rows:
+                sold_product: SoldProduct = SoldProduct.from_db_row(dict(db_row))
+                key = (sold_product.sku_no, sold_product.order_id)
+                new_row = sold_product.to_sheet_row()
+
+                if key in sheet_map:
+                    # ✅ UPDATE EXISTING
+                    row_index, existing_row = sheet_map[key]
+                    merged_row = [
+                        new_val if new_val not in (None, "") else existing_row.get(h, "")
+                        for new_val, h in zip(new_row, headers)
+                    ]
+                    row_range = f"A{row_index}:{chr(64 + len(headers))}{row_index}"
+                    updates.append({"range": row_range, "values": [merged_row]})
+                else:
+                    # ✅ ADD NEW SOLD PRODUCT
+                    new_rows.append(new_row)
+
+            # --- 4. Execute updates on the CORRECT sheet ---
+            if updates:
+                self.sold_items.batch_update(updates)
+            if new_rows:
+                self.sold_items.append_rows(new_rows, value_input_option="USER_ENTERED")
+
+            return None
+
+        except Exception as e:
+            return str(e)

@@ -13,10 +13,16 @@ from services.integrations.integrations import get_printer_service
 router = APIRouter(prefix="/system", tags=["system"])
 
 # ---------------- Existing endpoints ---------------- #
-@router.get("/sync")
-async def sync_database():
-    """Imports Google Sheets Records into the database"""
-    return systemService.sync_database()
+@router.get("/import-google-sheets-data")
+async def import_google_sheets_data():
+    """Imports Google Sheets Data into the database"""
+    return systemService.import_google_sheets_data()
+
+@router.get("/sync-data-to-google-sheets")
+async def import_google_sheets_data():
+    """Imports Google Sheets Data into the database"""
+
+    return systemService.sync_data_to_google_sheets()
 
 @router.get("/restart")
 async def restart_system():

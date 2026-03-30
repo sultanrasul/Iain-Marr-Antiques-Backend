@@ -29,7 +29,7 @@ class SalesService:
 
         if request.mark_as_sold:
             # Add sale to Google Sheets
-            sheetsService.mark_as_sold(request)
+            # sheetsService.mark_as_sold(request)
 
             # Add sale to Database
             order_id = databaseService.add_sold_product(request)

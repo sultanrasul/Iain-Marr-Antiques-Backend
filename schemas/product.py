@@ -118,7 +118,7 @@ class Product(BaseModel):
             item_description=row.get("description"),
             quantity=row.get("quantity", 1),
             selling_price=row.get("selling_price", 0.0),
-            purchase_price=row.get("purchase_price", 0.0),
+            purchase_price=row.get("purchase_price") if row.get("purchase_price") is not None else 0.0,
             date_bought=safe_str(row.get("date_purchased")),
             seller_name_address=row.get("name/address_seller"),
             sold=safe_bool(row.get("sold")),

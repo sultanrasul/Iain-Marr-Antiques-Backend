@@ -8,6 +8,7 @@ from gspread_formatting import *
 import csv
 import sqlite3
 from collections import defaultdict
+import re
 
 from schemas.getSalesRequest import GetSalesRequest
 from schemas.getStockRequest import GetStockRequest
@@ -229,8 +230,19 @@ class DatabaseService:
         }
 
         # Determine the column to sort by
-        sort_field = sort_mapping.get(request.sort_field, "description")  # default: description
-        sort_order = request.sort_order if request.sort_order in ["asc", "desc"] else "asc"
+        sort_field = sort_mapping.get(request.sort_field, "im_sku")
+        sort_order = request.sort_order if request.sort_order in ["asc", "desc"] else "desc"
+
+        # Pagination parameters from frontend
+        use_pagination = request.page and request.items_per_page
+        if use_pagination:
+            page = request.page if request.page > 0 else 1
+            items_per_page = request.items_per_page
+            offset = (page - 1) * items_per_page
+        else:
+            page = None
+            items_per_page = None
+            offset = None
 
         query = f"""
             SELECT *,
@@ -242,6 +254,9 @@ class DatabaseService:
             AND (:min_purchase_price IS NULL OR purchase_price >= :min_purchase_price)
             ORDER BY {sort_field} {sort_order}
         """
+        if use_pagination:
+            query += "\nLIMIT :limit OFFSET :offset"
+
 
         params = {
             "sku_text": f"%{request.sku_text}%" if request.sku_text else None,
@@ -249,6 +264,9 @@ class DatabaseService:
             "min_selling_price": request.min_selling_price,
             "min_purchase_price": request.min_purchase_price
         }
+        if use_pagination:
+            params["limit"] = items_per_page
+            params["offset"] = offset
 
         self.cursor.execute(query, params)
         rows = self.cursor.fetchall()
@@ -268,6 +286,17 @@ class DatabaseService:
         sort_field = SORT_FIELD_MAP.get(request.sort_field, "o.order_id")
         sort_order = request.sort_order or "asc"
 
+        # Pagination parameters from frontend
+        use_pagination = request.page and request.items_per_page
+        if use_pagination:
+            page = request.page if request.page > 0 else 1
+            items_per_page = request.items_per_page
+            offset = (page - 1) * items_per_page
+        else:
+            page = None
+            items_per_page = None
+            offset = None
+            
         query = f"""
             SELECT 
                 o.order_id,
@@ -295,6 +324,9 @@ class DatabaseService:
             ORDER BY {sort_field} {sort_order}
         """
 
+        if use_pagination:
+            query += "\nLIMIT :limit OFFSET :offset"
+
         params = {
             "order_id": request.order_id,
             "customer_id": request.customer_id,
@@ -304,6 +336,9 @@ class DatabaseService:
             "min_items": request.min_items,
             "min_price": request.min_price
         }
+        if use_pagination:
+            params["limit"] = items_per_page
+            params["offset"] = offset
 
         self.cursor.execute(query, params)
         return self.cursor.fetchall()
@@ -503,3 +538,51 @@ class DatabaseService:
         row = self.cursor.fetchone()
 
         return dict(row)
+    
+
+    def get_next_sku_num(self) -> str:
+        """
+        Generate the next SKU number by incrementing the numeric part.
+        Pattern: 2-999 → 3-0 → 3-1 → ... → 3-999 → 4-0 ...
+        Ignores any trailing letters or spaces after the number.
+        
+        Raises:
+            ValueError: if the next SKU already exists in the database.
+        """
+        # Get the last SKU by product_id
+        self.cursor.execute("SELECT sku_no FROM products ORDER BY product_id DESC LIMIT 1")
+        last_row = self.cursor.fetchone()
+
+        if not last_row or not last_row["sku_no"]:
+            # Start from 2-999 if no products yet
+            next_sku = "2-999"
+        else:
+            last_sku = last_row["sku_no"].strip()
+            try:
+                # Split by dash
+                prefix_str, num_part = last_sku.split("-", 1)
+                prefix = int(prefix_str)
+
+                # Extract the leading number from the second part, ignore letters/spaces
+                match = re.match(r"(\d+)", num_part.strip())
+                if match:
+                    num = int(match.group(1))
+                else:
+                    num = 0  # fallback if no number found
+
+                if num < 999:
+                    next_num = num + 1
+                    next_sku = f"{prefix}-{next_num}"
+                else:
+                    next_sku = f"{prefix + 1}-0"
+            except Exception:
+                # Fallback if SKU format is completely invalid
+                next_sku = "2-999"
+
+        # Check if SKU already exists
+        self.cursor.execute("SELECT 1 FROM products WHERE sku_no = ?", (next_sku,))
+        if self.cursor.fetchone():
+            raise ValueError(f"Next SKU '{next_sku}' already exists in the database!")
+
+        return next_sku
+

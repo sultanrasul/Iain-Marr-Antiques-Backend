@@ -33,32 +33,34 @@ class StockService:
 
     @staticmethod
     def add_product(product: Product):
-        """
-
-        Add a new product to stock
-        """
         sheetsService = get_sheets_service()
         databaseService = get_database_service()
-        sheets_new_product = sheetsService.add_product(product)
+        """
+        Add a new product to stock
+        """
+        # get the next sku num
+        product.sku_no = databaseService.get_next_sku_num()
+
+        # sheets_new_product = sheetsService.add_product(product)
         databaseService.add_product(product)
 
-        return sheets_new_product
+        return None
 
     @staticmethod
-    def modify_product(product: Product):
+    def modify_products(products: list[Product]):
         """
         Modify an existing product by SKU
         """
         sheetsService = get_sheets_service()
         databaseService = get_database_service()
-        updated = sheetsService.update_product(product)
+        # updated = sheetsService.update_product(product)
 
-        if not updated:
-            raise NotFoundError(f"Product with SKU {product.sku_no} not found")
+        # if not updated:
+        #     raise NotFoundError(f"Product with SKU {product.sku_no} not found")
+        for product in products:
+            databaseService.modify_product(product)
 
-        databaseService.modify_product(product)
-
-        return updated
+        return None
     
     @staticmethod
     def get_order_products(order_id: str):

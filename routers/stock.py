@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
@@ -23,11 +25,11 @@ async def get_sales(request: GetSalesRequest = Depends()):
     # Extract query parameters from request body
     return StockService.get_sales(request)
 
-@router.post("/modify-product")
-async def modify_product(request: Product):
+@router.post("/modify-products")
+async def modify_product(request: List[Product]):
     """Modify Product"""
 
-    return StockService.modify_product(request)
+    return StockService.modify_products(request)
 
 @router.post("/add-product")
 async def modify_product(request: Product):

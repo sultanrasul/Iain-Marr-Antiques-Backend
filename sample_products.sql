@@ -1,0 +1,35 @@
+INSERT OR IGNORE INTO products (
+    sku_no, im_sku, description, quantity, selling_price, purchase_price, date_purchased, "name/address_seller"
+) VALUES
+('3-661', 'IM661', 'Widget Alpha', 10, 15.50, 8.00, '2026-01-01', 'Supplier A'),
+('3-662', 'IM662', 'Widget Beta', 5, 20.00, 10.00, '2026-01-02', 'Supplier B'),
+('3-663', NULL, 'Widget Gamma', 0, 12.99, 6.00, '2026-01-03', NULL),
+('3-664', 'IM664', 'Widget Delta', 7, 9.99, 4.50, '2026-01-04', 'Supplier A'),
+('3-665', NULL, 'Widget Epsilon', 3, 5.00, NULL, NULL, NULL),
+('3-666', 'IM666', 'Widget Zeta', 12, 30.00, 20.00, '2026-01-06', 'Supplier C'),
+('3-667', 'IM667', 'Widget Eta', 1, 100.00, 50.00, '2026-01-07', 'Supplier D'),
+('3-668', NULL, 'Widget Theta', 8, 22.00, 11.00, NULL, 'Supplier B'),
+('3-669', 'IM669', 'Widget Iota', 6, 18.75, 9.00, '2026-01-09', NULL),
+('3-670', NULL, 'Widget Kappa', 4, 14.00, NULL, NULL, NULL),
+
+('3-671', 'IM671', 'Widget Lambda', 9, 11.50, 5.50, '2026-01-11', 'Supplier A'),
+('3-672', 'IM672', 'Widget Mu', 2, 60.00, 30.00, '2026-01-12', 'Supplier C'),
+('3-673', NULL, 'Widget Nu', 0, 7.99, 3.50, NULL, NULL),
+('3-674', 'IM674', 'Widget Xi', 11, 25.00, 12.00, '2026-01-14', 'Supplier D'),
+('3-675', NULL, 'Widget Omicron', 5, 16.00, NULL, NULL, 'Supplier A'),
+('3-676', 'IM676', 'Widget Pi', 7, 19.99, 10.00, '2026-01-16', NULL),
+('3-677', 'IM677', 'Widget Rho', 3, 45.00, 25.00, '2026-01-17', 'Supplier B'),
+('3-678', NULL, 'Widget Sigma', 6, 13.50, 6.00, NULL, NULL),
+('3-679', 'IM679', 'Widget Tau', 10, 8.99, 4.00, '2026-01-19', 'Supplier C'),
+('3-680', NULL, 'Widget Upsilon', 1, 120.00, NULL, NULL, NULL),
+
+('3-681', 'IM681', 'Widget Phi', 14, 6.50, 3.00, '2026-01-21', 'Supplier D'),
+('3-682', NULL, 'Widget Chi', 2, 75.00, 40.00, NULL, NULL),
+('3-683', 'IM683', 'Widget Psi', 9, 33.00, 15.00, '2026-01-23', 'Supplier A'),
+('3-684', NULL, 'Widget Omega', 0, 9.50, 4.00, NULL, 'Supplier B'),
+('3-685', 'IM685', 'Widget Prime', 8, 27.00, 13.00, '2026-01-25', NULL),
+('3-686', NULL, 'Widget Nova', 6, 21.00, NULL, NULL, NULL),
+('3-687', 'IM687', 'Widget Apex', 3, 55.00, 30.00, '2026-01-27', 'Supplier C'),
+('3-688', NULL, 'Widget Core', 5, 17.25, 8.00, NULL, NULL),
+('3-689', 'IM689', 'Widget Edge', 7, 29.99, 14.00, '2026-01-29', 'Supplier D'),
+('3-690', NULL, 'Widget Vertex', 4, 23.00, NULL, NULL, NULL);
