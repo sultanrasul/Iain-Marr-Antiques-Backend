@@ -381,7 +381,7 @@ class DatabaseService:
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                product.sku_no.strip(),
+                product.new_sku_no.strip(),
                 product.im_sku,
                 product.item_description,
                 product.quantity,
@@ -395,15 +395,25 @@ class DatabaseService:
             return None
 
         except sqlite3.IntegrityError as e:
-            return f"Integrity error: {str(e)}"
+            error_message = str(e)
+            if "UNIQUE constraint failed" in error_message:
+                return "SKU number already exists"
+
+            if "NOT NULL constraint failed" in error_message:
+                return "A required field is missing"
+
+            return error_message
+
         except Exception as e:
             return str(e)
+    
     @timeit
     def modify_product(self, product: Product) -> Optional[str]:
         try:
             self.cursor.execute("""
                 UPDATE products
                 SET
+                    sku_no = ?,
                     im_sku = ?,
                     description = ?,
                     quantity = ?,
@@ -413,6 +423,7 @@ class DatabaseService:
                     "name/address_seller" = ?
                 WHERE sku_no = ?
             """, (
+                product.new_sku_no.strip(),          # NEW sku_no
                 product.im_sku,
                 product.item_description,
                 product.quantity,
@@ -420,7 +431,7 @@ class DatabaseService:
                 product.purchase_price,
                 product.date_bought,
                 product.seller_name_address,
-                product.sku_no.strip()
+                product.sku_no.strip()               # OLD sku_no
             ))
 
             if self.cursor.rowcount == 0:
@@ -430,7 +441,15 @@ class DatabaseService:
             return None
 
         except Exception as e:
-            return str(e)
+            error_message = str(e)
+            print(F"ERROR: {error_message}")
+            if "UNIQUE constraint failed" in error_message:
+                return "SKU number already exists. Please use a different SKU."
+
+            if "NOT NULL constraint failed" in error_message:
+                return "A required field is missing."
+
+            return error_message
     
     def add_sold_product(self, printRequest: PrintRequest) -> Optional[str]:
         try:
@@ -539,7 +558,6 @@ class DatabaseService:
 
         return dict(row)
     
-
     def get_next_sku_num(self) -> str:
         """
         Generate the next SKU number by incrementing the numeric part.

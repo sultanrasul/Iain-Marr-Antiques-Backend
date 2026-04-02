@@ -5,6 +5,7 @@ from datetime import datetime
 class Product(BaseModel):
     row_number: Optional[int] = Field(None, example=3297)
     sku_no: str = Field(example="IMA9000000")
+    new_sku_no: Optional[str] = Field(example="IMA9000000")
     im_sku: Optional[str] = Field(None, example="529-308")
     item_description: Optional[str] = Field(None, example="Fast API Testing")
     selling_price: float = Field(0.0, example=1350.0)
@@ -61,6 +62,7 @@ class Product(BaseModel):
         return cls(
             row_number=safe_int(row.get("row_number")),
             sku_no=safe_str(row.get("SKU NO.")),
+            new_sku_no=safe_str(row.get("SKU NO.")),
             im_sku=safe_str(row.get("IM SKU")),
             item_description=safe_str(row.get("ITEM DESCRIPTION")),
             quantity=safe_int(row.get("Quantity"), default=-1),
@@ -114,6 +116,7 @@ class Product(BaseModel):
         return cls(
             row_number=row.get("product_id"),
             sku_no=row.get("sku_no", ""),
+            new_sku_no=row.get("sku_no", ""),
             im_sku=row.get("im_sku"),
             item_description=row.get("description"),
             quantity=row.get("quantity", 1),

@@ -42,9 +42,9 @@ class StockService:
         product.sku_no = databaseService.get_next_sku_num()
 
         # sheets_new_product = sheetsService.add_product(product)
-        databaseService.add_product(product)
+        result = databaseService.add_product(product)
 
-        return None
+        return result
 
     @staticmethod
     def modify_products(products: list[Product]):
@@ -58,9 +58,9 @@ class StockService:
         # if not updated:
         #     raise NotFoundError(f"Product with SKU {product.sku_no} not found")
         for product in products:
-            databaseService.modify_product(product)
+            result = databaseService.modify_product(product)
 
-        return None
+        return result
     
     @staticmethod
     def get_order_products(order_id: str):

@@ -25,6 +25,4 @@ sold_products = sheetsService.get_sold_items()
 errors = databaseService.import_sold_products_to_db(sold_products=sold_products)
 print(errors)
 
-print(F"ORDER ID: {sold_products[3].date_sold}")
-
 databaseService.conn.close()

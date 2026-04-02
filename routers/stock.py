@@ -29,13 +29,30 @@ async def get_sales(request: GetSalesRequest = Depends()):
 async def modify_product(request: List[Product]):
     """Modify Product"""
 
-    return StockService.modify_products(request)
+    result = StockService.modify_products(request)
+
+    if result is None:
+        return {"message": "Products updated successfully"}
+
+    if result == "Product not found":
+        raise HTTPException(status_code=404, detail=result)
+
+    if result == "SKU number already exists":
+        raise HTTPException(status_code=409, detail=result)
+
+    raise HTTPException(status_code=400, detail=result)
 
 @router.post("/add-product")
-async def modify_product(request: Product):
-    """Add Product"""
+async def add_product(request: Product):
+    result = StockService.add_product(request)
 
-    return StockService.add_product(request)
+    if result is None:
+        return {"message": "Product added successfully"}
+
+    if result == "SKU number already exists":
+        raise HTTPException(status_code=409, detail=result)
+
+    raise HTTPException(status_code=400, detail=result)
 
 @router.get("/{order_id}/products")
 async def get_order_products(order_id: str):
