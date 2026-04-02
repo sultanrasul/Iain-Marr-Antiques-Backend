@@ -2,10 +2,15 @@
 venv
 *.json
 .DS_Store
+
+# Databases
+*.sqlite
+*.db
+*.sqlite3
     
 # Python bytecode
 __pycache__/
 *.py[cod]
 
 # Pytest cache
-.pytest_cache/  
+.pytest_cache/  git rm --cached -r -- '*.sqlite'
