@@ -34,6 +34,13 @@ CREATE TABLE sold_products (
     sold_product_id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER,
     product_id INTEGER,
+
+    -- snapshot fields
+    description TEXT NOT NULL,
+    sku_no TEXT,
+    im_sku TEXT,
+    selling_price REAL NOT NULL CHECK(selling_price >= 0),
+
     quantity INTEGER,
     FOREIGN KEY(order_id) REFERENCES orders(order_id),
     FOREIGN KEY(product_id) REFERENCES products(product_id)

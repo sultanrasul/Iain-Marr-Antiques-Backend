@@ -74,6 +74,13 @@ class DatabaseService:
                 sold_product_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 order_id INTEGER,
                 product_id INTEGER,
+
+                -- snapshot fields
+                description TEXT NOT NULL,
+                sku_no TEXT,
+                im_sku TEXT,
+                selling_price REAL NOT NULL CHECK(selling_price >= 0),
+
                 quantity INTEGER,
                 FOREIGN KEY(order_id) REFERENCES orders(order_id),
                 FOREIGN KEY(product_id) REFERENCES products(product_id)
@@ -202,9 +209,9 @@ class DatabaseService:
                 product_id, current_qty = row
 
                 self.cursor.execute("""
-                    INSERT INTO sold_products (order_id, product_id, quantity)
-                    VALUES (?, ?, ?)
-                """, (sheet_order_id, product_id, sold.quantity))
+                    INSERT INTO sold_products (order_id, product_id, description, sku_no, im_sku, selling_price, quantity)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (sheet_order_id, product_id,sold.item_description, sold.sku_no, sold.im_sku, sold.selling_price, sold.quantity))
 
                 new_qty = max(current_qty - sold.quantity, 0)
 
@@ -349,14 +356,11 @@ class DatabaseService:
             -- Get a list of products by order id
             SELECT 
                 p.product_id,
-                p.sku_no,
-                p.im_sku,
-                p.description,
+                sp.sku_no,
+                sp.im_sku,
+                sp.description,
                 sp.quantity,
-                p.selling_price,
-                p.purchase_price,
-                p.date_purchased,
-                p."name/address_seller" 
+                sp.selling_price
             FROM sold_products sp
             INNER JOIN products p
                 ON sp.product_id = p.product_id
