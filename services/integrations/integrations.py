@@ -1,5 +1,6 @@
 # integrations.py
 from typing import Literal
+import os
 
 from services.integrations.printer_service import PrinterIntegration
 from services.integrations.sheets_service import SheetsService
@@ -9,10 +10,22 @@ from config import settings
 
 printer_service = PrinterIntegration()
 sheets_service = SheetsService()
-database_service = DatabaseService(settings.DATABASE_PATH)
+
+db_path = settings.DATABASE_PATH
+db_is_new = not os.path.exists(db_path)
+database_service = DatabaseService(db_path)
+
 email_service = EmailService()
 
-def get_printer_service():
+# If it's a new database, populate it from Google Sheets
+if db_is_new:
+    print(f"New database detected at {db_path}. Populating from Google Sheets...")
+    products = sheets_service.get_stock()
+    database_service.import_products_to_db(products)
+    sold_items = sheets_service.get_sold_items()
+    database_service.import_sold_products_to_db(sold_items)
+
+def get_printer_service(): 
     return printer_service
 
 def get_sheets_service():

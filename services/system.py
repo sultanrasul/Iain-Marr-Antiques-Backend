@@ -29,8 +29,9 @@ class SystemService:
             return {"success": False, "error": str(e)}, 500
 
     @staticmethod
-    def import_google_sheets_data():
-        databaseService = get_database_service()
+    def import_google_sheets_data(databaseService=None):
+        if databaseService is None:
+            databaseService = get_database_service()
         sheetsService = get_sheets_service()
         
         # Import products

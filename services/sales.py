@@ -1,5 +1,6 @@
 import subprocess
 
+from fastapi import HTTPException
 from schemas.product import Product
 from schemas.printRequest import PrintRequest
 from schemas.soldProduct import SoldProduct
@@ -28,15 +29,16 @@ class SalesService:
             raise http_exception_handler(exc=PrinterNotConnected())
 
         if request.mark_as_sold:
-            # Add sale to Google Sheets
-            # sheetsService.mark_as_sold(request)
-
             # Add sale to Database
-            order_id = databaseService.add_sold_product(request)
+            print("adding sold items to the database!")
+            db_result = databaseService.add_sold_product(request)
+            if isinstance(db_result, str): # It's an error message
+                raise HTTPException(status_code=400, detail=db_result)
+            order_id = str(db_result)
 
         # Print the receipt(s)
         for _ in range (request.copies):
-            SalesService.print_receipt(request)
+            SalesService.print_receipt(request, order_id)
 
         # Send Email
         if request.email_address:

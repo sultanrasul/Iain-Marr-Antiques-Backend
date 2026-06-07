@@ -9,12 +9,15 @@ class Settings(BaseSettings):
     GOOGLE_SERVICE_ACCOUNT_JSON: dict
     MAILJET_API_KEY: str
     MAILJET_SECRET_KEY: str
+    TURSO_DATABASE_URL: str
+    TURSO_AUTH_TOKEN: str
 
     # --- Editable settings persisted to JSON ---
     api_v1_prefix: str = "/api/v1"
     GOOGLE_SHEETS_ID: str
     DATABASE_PATH: str
     ENV: str = "testing"
+    
 
     class Config:
         env_file = ".env"

@@ -9,6 +9,7 @@ import csv
 import sqlite3
 from collections import defaultdict
 import re
+import os
 
 from schemas.getSalesRequest import GetSalesRequest
 from schemas.getStockRequest import GetStockRequest
@@ -30,10 +31,7 @@ class DatabaseService:
         self.conn.row_factory = sqlite3.Row
 
         self.cursor = self.conn.cursor()
-
-
         self.cursor.execute("PRAGMA foreign_keys = ON;")
-
         self.init_tables()
     
     def init_tables(self):
@@ -300,39 +298,53 @@ class DatabaseService:
             items_per_page = request.items_per_page
             offset = (page - 1) * items_per_page
         else:
-            page = None
-            items_per_page = None
-            offset = None
-            
-        query = f"""
-            SELECT 
-                o.order_id,
-                c.name AS customer_name,
-                o.date_sold,
-                o.total_amount,
-                COALESCE(SUM(sp.quantity), 0) AS items_purchased
+            items_per_page = 1000  # Default fallback
+            offset = 0
+
+        # Base filtering and grouping logic used for both rows and stats
+        base_filter_query = f"""
             FROM orders o
-            LEFT JOIN customers c
-                ON o.customer_id = c.customer_id
-            LEFT JOIN sold_products sp
-                ON sp.order_id = o.order_id
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN sold_products sp ON sp.order_id = o.order_id
             WHERE
                 (:order_id IS NULL OR o.order_id = :order_id)
                 AND (:customer_id IS NULL OR o.customer_id = :customer_id)
                 AND (:customer_name IS NULL OR c.name LIKE :customer_name)
                 AND (:date_from IS NULL OR o.date_sold >= :date_from)
-                -- Adjust :date_to to include the entire day if specified
                 AND (:date_to IS NULL OR o.date_sold <= datetime(:date_to, '+1 day', '-1 second'))
             GROUP BY 
                 o.order_id, c.name, o.date_sold, o.total_amount
             HAVING
                 (:min_items IS NULL OR COALESCE(SUM(sp.quantity), 0) >= :min_items)
                 AND (:min_price IS NULL OR o.total_amount >= :min_price)
+        """
+
+        # Query 1: Get aggregate statistics for the filtered dataset (ignoring pagination)
+        stats_query = f"""
+            SELECT 
+                COUNT(*) AS total_orders,
+                COALESCE(SUM(total_amount), 0) AS total_revenue,
+                COALESCE(AVG(total_amount), 0) AS average_order_value
+            FROM (
+                SELECT o.total_amount 
+                {base_filter_query}
+            ) AS filtered_orders
+        """
+
+        # Query 2: Get the specific page of rows
+        rows_query = f"""
+            SELECT 
+                o.order_id,
+                c.name AS customer_name,
+                o.date_sold,
+                o.total_amount,
+                COALESCE(SUM(sp.quantity), 0) AS items_purchased
+            {base_filter_query}
             ORDER BY {sort_field} {sort_order}
         """
 
         if use_pagination:
-            query += "\nLIMIT :limit OFFSET :offset"
+            rows_query += "\nLIMIT :limit OFFSET :offset"
 
         params = {
             "order_id": request.order_id,
@@ -343,12 +355,23 @@ class DatabaseService:
             "min_items": request.min_items,
             "min_price": request.min_price
         }
+
         if use_pagination:
             params["limit"] = items_per_page
             params["offset"] = offset
 
-        self.cursor.execute(query, params)
-        return self.cursor.fetchall()
+        # Execute Stats
+        self.cursor.execute(stats_query, params)
+        stats = dict(self.cursor.fetchone())
+
+        # Execute Rows
+        self.cursor.execute(rows_query, params)
+        rows = self.cursor.fetchall()
+
+        return {
+            "sales": [dict(row) for row in rows],
+            "stats": stats
+        }
 
     def get_order_products(self, order_id: str) -> List[Product]:
         self.cursor.execute(
@@ -488,7 +511,7 @@ class DatabaseService:
 
             for item in printRequest.products:
                 self.cursor.execute(
-                    "SELECT product_id, quantity, selling_price FROM products WHERE sku_no = ?",
+                    "SELECT product_id, quantity FROM products WHERE sku_no = ?",
                     (item.sku_no,)
                 )
 
@@ -500,14 +523,22 @@ class DatabaseService:
 
                 product_id = row["product_id"]
                 current_qty = row["quantity"]
-                selling_price = row["selling_price"]
 
-                # Default quantity = 1 if not provided
-                qty_to_sell = max(1,item.quantity if item.quantity is not None else 1)
+                # Use values from the request item for snapshot fields and quantity
+                qty_to_sell = item.quantity if (item.quantity is not None and item.quantity > 0) else 1
+                price_at_sale = item.selling_price
 
-                total_amount += selling_price * qty_to_sell
+                total_amount += price_at_sale * qty_to_sell
 
-                product_rows.append((product_id, current_qty, qty_to_sell))
+                product_rows.append({
+                    "product_id": product_id,
+                    "sku_no": item.sku_no,
+                    "im_sku": item.im_sku,
+                    "description": item.item_description,
+                    "current_qty": current_qty,
+                    "qty_to_sell": qty_to_sell,
+                    "selling_price": price_at_sale
+                })
 
             # 3. Create order
             self.cursor.execute("""
@@ -523,21 +554,21 @@ class DatabaseService:
             order_id = self.cursor.lastrowid
 
             # 4. Insert sold_products + update stock
-            for product_id, current_qty, qty_to_sell in product_rows:
+            for p in product_rows:
 
                 self.cursor.execute("""
-                    INSERT INTO sold_products (order_id, product_id, quantity)
-                    VALUES (?, ?, ?)
-                """, (order_id, product_id, qty_to_sell))
+                    INSERT INTO sold_products (order_id, product_id, description, sku_no, im_sku, selling_price, quantity)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (order_id, p["product_id"], p["description"], p["sku_no"], p["im_sku"], p["selling_price"], p["qty_to_sell"]))
 
                 # Update quantity in products table
-                new_qty = max(0, current_qty - qty_to_sell)
+                new_qty = max(0, p["current_qty"] - p["qty_to_sell"])
 
                 self.cursor.execute("""
                     UPDATE products
                     SET quantity = ?
                     WHERE product_id = ?
-                """, (new_qty, product_id))
+                """, (new_qty, p["product_id"]))
 
             self.conn.commit()
             return order_id
@@ -607,4 +638,3 @@ class DatabaseService:
             raise ValueError(f"Next SKU '{next_sku}' already exists in the database!")
 
         return next_sku
-
